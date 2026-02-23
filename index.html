@@ -3,76 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CB POKER - Multiplayer</title>
+    <title>CB POKER</title>
     <style>
         :root { --poker-green: #1a4a32; --gold: #ffd700; }
-        body { background: #121212; color: white; font-family: sans-serif; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        #table-container { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #poker-table { width: 80vw; height: 45vh; max-width: 600px; background: radial-gradient(circle, #2d6a4f 0%, #1b4332 100%); border: 12px solid #3d2b1f; border-radius: 200px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        #pot-display { font-size: 2rem; color: var(--gold); font-weight: bold; }
-        #room-link { position: absolute; top: 10px; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; font-size: 11px; max-width: 90%; word-break: break-all; text-align: center; }
-        #players-ring { position: absolute; width: 100%; height: 100%; pointer-events: none; }
-        .player-card { position: absolute; background: rgba(0,0,0,0.8); border: 1px solid var(--gold); padding: 8px; border-radius: 8px; width: 85px; text-align: center; }
+        body { background: #121212; color: white; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        #room-link { position: absolute; top: 10px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; font-size: 12px; text-align: center; width: 90%; }
+        #poker-table { width: 80vw; height: 40vh; max-width: 500px; background: radial-gradient(circle, #2d6a4f 0%, #1b4332 100%); border: 10px solid #3d2b1f; border-radius: 200px; display: flex; align-items: center; justify-content: center; position: relative; }
         .controls { position: fixed; bottom: 30px; display: flex; gap: 10px; }
-        button { padding: 12px 20px; font-size: 14px; cursor: pointer; border: none; border-radius: 25px; background: var(--gold); color: #000; font-weight: bold; }
+        button { padding: 12px 20px; border-radius: 20px; border: none; background: var(--gold); font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="table-container">
-    <div id="room-link">正在初始化多人引擎，请稍候...</div>
-    <div id="poker-table">
-        <div id="pot-display">$0</div>
-    </div>
-    <div id="players-ring"></div>
-    <div class="controls">
-        <button id="betBtn">下注 $100</button>
-        <button id="startBtn" style="background:white">开始发牌</button>
-    </div>
+<div id="room-link">正在启动游戏引擎... (如果长时间没反应，请刷新)</div>
+
+<div id="poker-table">
+    <div id="pot-display" style="font-size: 30px;">$0</div>
+</div>
+
+<div class="controls">
+    <button id="betBtn">下注 $100</button>
 </div>
 
 <script type="module">
-    import { insertCoin, onPlayerJoin, getState, setState, myPlayer, getPlayers, isHost, onStateChange } 
+    // 直接从官方推荐的 CDN 导入
+    import { insertCoin, onPlayerJoin, getState, setState, onStateChange } 
     from "https://cdn.jsdelivr.net/npm/playroomkit/dist/playroomkit.js";
 
-    const linkEl = document.getElementById("room-link");
-    const potEl = document.getElementById("pot-display");
-
     async function init() {
-        try {
-            // 启动引擎
-            await insertCoin();
-            linkEl.innerHTML = `房间已就绪！分享链接: <span style="color:var(--gold)">${window.location.href}</span>`;
+        const linkEl = document.getElementById("room-link");
 
-            // 绑定按钮事件
+        try {
+            console.log("正在尝试连接 Playroom...");
+            
+            // 强制配置：显示大厅，并设置游戏 ID (可以使用任何字符串)
+            await insertCoin({
+                gameId: "cb-poker-2026", 
+                skipLobby: false
+            });
+
+            console.log("连接成功！");
+            linkEl.innerHTML = `已连接！房间链接: <span style="color:var(--gold)">${window.location.href}</span>`;
+
+            // 同步底池
+            onStateChange("pot", (val) => {
+                document.getElementById("pot-display").innerText = `$${val || 0}`;
+            });
+
             document.getElementById("betBtn").onclick = () => {
-                const currentPot = getState("pot") || 0;
-                setState("pot", currentPot + 100, true);
+                const current = getState("pot") || 0;
+                setState("pot", current + 100, true);
             };
 
-            document.getElementById("startBtn").onclick = startNewRound;
-
-            // 监听状态
-            onPlayerJoin(updateUI);
-            onStateChange("pot", (val) => { potEl.innerText = `$${val || 0}`; });
-            
-            updateUI();
-        } catch (e) {
-            linkEl.innerText = "引擎连接失败，请检查是否被浏览器插件拦截。";
-            console.error(p);
+        } catch (error) {
+            console.error("初始化失败:", error);
+            linkEl.innerText = "引擎启动失败，请尝试在无痕模式下打开或检查浏览器插件。";
         }
     }
 
-    function updateUI() {
-        const players = getPlayers();
-        const ring = document.getElementById("players-ring");
-        ring.innerHTML = "";
-        players.forEach((p, i) => {
-            const prof = p.getProfile();
-            const angle = (i / players.length) * Math.PI * 2;
-            const x = Math.cos(angle) * 160 + (window.innerWidth / 2) - 45;
-            const y = Math.sin(angle) * 130 + (window.innerHeight / 2) - 35;
-
-            const div = document.createElement("div");
-            div.className = "player-card";
-            div
+    // 确保 DOM 加载后运行
+    init();
+</script>
+</body>
+</html>
