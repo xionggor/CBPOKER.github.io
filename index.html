@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C123B POKER - Multiplayer</title>
+    <title>CB POKER - Multiplayer</title>
     <style>
         :root { --poker-green: #1a4a32; --gold: #ffd700; --felt: #2d6a4f; }
         body { background: #121212; color: white; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; }
@@ -32,14 +32,14 @@
         button:disabled { background: #444; color: #888; }
         
         /* 启动层 */
-        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; flex-direction: column; align-items:center; justify-content:center; z-index:100; }
+        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:flex; flex-direction: column; align-items:center; justify-content:center; z-index:1000; }
     </style>
 </head>
 <body>
 
 <div id="overlay">
-    <div id="loading-text" style="color:white; margin-bottom:20px;">正在穿透网络加载引擎...</div>
-    <button id="start-engine-btn" style="display:none;" onclick="window.startPlayroom()">点击进入游戏房间</button>
+    <div id="loading-text" style="color:white; margin-bottom:20px;">正在通过全球 CDN 寻找游戏引擎...</div>
+    <button id="start-engine-btn" style="display:none;" onclick="startPlayroom()">点击进入游戏房间</button>
 </div>
 
 <div id="status-area">房间准备中...</div>
@@ -52,75 +52,90 @@
 <div id="players-ring"></div>
 
 <div class="controls">
-    <button onclick="window.makeBet(100)">下注 $100</button>
-    <button id="deal-btn" onclick="window.startDeal()">开始发牌</button>
+    <button onclick="makeBet(100)">下注 $100</button>
+    <button id="deal-btn" onclick="startDeal()">开始发牌</button>
 </div>
 
-<script type="module">
-    const sources = [
-        "https://cdn.skypack.dev/playroomkit",
-        "https://esm.run/playroomkit",
-        "https://cdn.jsdelivr.net/npm/playroomkit/dist/playroomkit.js"
-    ];
-
-    let PK = null; // 用于存储引擎对象
-
-    async function loadEngine() {
-        const loadingText = document.getElementById("loading-text");
-        const startBtn = document.getElementById("start-engine-btn");
-
-        // 尝试多个源加载
-        for (const src of sources) {
-            try {
-                const module = await import(src);
-                PK = module.default || module;
-                if (PK && PK.insertCoin) {
-                    // 加载成功，显示按钮
-                    loadingText.style.display = "none";
-                    startBtn.style.display = "inline-block";
-                    return;
-                }
-            } catch (e) {
-                console.warn("源拦截:", src);
-            }
-        }
-        loadingText.innerText = "加载失败，请检查浏览器插件或网络。";
+<script>
+    // 1. 动态注入脚本（最原始但也最防卡死的方法）
+    function loadScript(url) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = url;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+        });
     }
 
-    // 点击按钮后触发
-    window.startPlayroom = async function() {
-        document.getElementById("start-engine-btn").innerText = "连接中...";
+    // 尝试多个源，只要有一个成了就立刻停下
+    async function bootEngine() {
+        const sources = [
+            "https://unpkg.com/playroomkit/dist/playroomkit.js",
+            "https://cdn.jsdelivr.net/npm/playroomkit/dist/playroomkit.js"
+        ];
+        
+        const loadingText = document.getElementById("loading-text");
+        
+        for (let src of sources) {
+            try {
+                loadingText.innerText = `尝试连接节点...`;
+                await loadScript(src);
+                
+                // 检查全局变量是否出现
+                if (typeof Playroom !== 'undefined') {
+                    loadingText.style.display = "none";
+                    document.getElementById("start-engine-btn").style.display = "inline-block";
+                    return; // 成功加载，退出函数
+                }
+            } catch (e) {
+                console.warn("节点连接失败，切换下一个:", src);
+            }
+        }
+        
+        loadingText.innerText = "❌ 所有节点连接失败！请尝试关闭广告拦截插件，或切换至手机热点重试。";
+    }
+
+    // 2. 解决黑屏挡住选人框的核心逻辑
+    async function startPlayroom() {
+        // 第一步：不管三七二十一，先撤掉黑布！把屏幕让出来！
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("status-area").innerText = "请在弹出的界面选择头像和名字...";
+        
         try {
-            await PK.insertCoin({ gameId: "cb_poker_prod_final", skipLobby: false });
-            // 成功后隐藏黑屏遮罩
-            document.getElementById("overlay").style.display = "none";
-            document.getElementById("status-area").innerHTML = `分享此链接邀请好友: <br><span style="color:#fff;font-size:12px;">${window.location.href}</span>`;
+            // 第二步：呼叫选人大厅
+            await Playroom.insertCoin({ gameId: "cb_poker_prod_final", skipLobby: false });
+            
+            // 第三步：选完人后准备就绪
+            document.getElementById("status-area").innerHTML = `分享此链接邀请好友: <br><span style="color:gold;font-size:12px;">${window.location.href}</span>`;
             setupGame();
         } catch (e) {
             alert("启动失败: " + e.message);
+            // 如果失败了，把黑布盖回来让用户重新点
+            document.getElementById("overlay").style.display = "flex";
             document.getElementById("start-engine-btn").innerText = "重试";
         }
-    };
+    }
 
+    // 3. 游戏逻辑设置
     function setupGame() {
         const dealBtn = document.getElementById("deal-btn");
-        // 只有第一个进来的人(房主)可以发牌
-        if (!PK.isHost()) {
+        if (!Playroom.isHost()) {
             dealBtn.disabled = true;
             dealBtn.innerText = "等待房主发牌";
         }
 
-        PK.onPlayerJoin(renderUI);
-        PK.onStateChange("pot", (val) => {
+        Playroom.onPlayerJoin(renderUI);
+        Playroom.onStateChange("pot", (val) => {
             document.getElementById("pot-display").innerText = `$${val || 0}`;
         });
-        PK.onStateChange("gameRound", renderUI);
+        Playroom.onStateChange("gameRound", renderUI);
         renderUI();
     }
 
     // 洗牌与发牌
-    window.startDeal = () => {
-        if (!PK.isHost()) return;
+    function startDeal() {
+        if (!Playroom.isHost()) return;
         
         let deck = [];
         const suits = ['♠', '♥', '♣', '♦'];
@@ -128,24 +143,25 @@
         suits.forEach(s => values.forEach(v => deck.push(v + s)));
         deck.sort(() => Math.random() - 0.5);
 
-        const players = PK.getPlayers();
+        const players = Playroom.getPlayers();
         players.forEach(p => {
-            p.setState("hand", [deck.pop(), deck.pop()]); // 发两张牌
+            p.setState("hand", [deck.pop(), deck.pop()]); 
         });
 
-        const round = PK.getState("gameRound") || 0;
-        PK.setState("gameRound", round + 1, true); // 触发刷新
-        PK.setState("pot", 0, true); // 清空底池
-    };
+        const round = Playroom.getState("gameRound") || 0;
+        Playroom.setState("gameRound", round + 1, true); 
+        Playroom.setState("pot", 0, true); 
+    }
 
-    window.makeBet = (amount) => {
-        const current = PK.getState("pot") || 0;
-        PK.setState("pot", current + amount, true);
-    };
+    function makeBet(amount) {
+        const current = Playroom.getState("pot") || 0;
+        Playroom.setState("pot", current + amount, true);
+    }
 
+    // UI 渲染引擎
     function renderUI() {
-        const players = PK.getPlayers();
-        const me = PK.myPlayer();
+        const players = Playroom.getPlayers();
+        const me = Playroom.myPlayer();
         const ring = document.getElementById("players-ring");
         ring.innerHTML = "";
 
@@ -154,7 +170,6 @@
             const hand = p.getState("hand") || [];
             const isMe = p.id === me.id;
 
-            // 数学计算让玩家围坐在桌子旁
             const angle = (i / players.length) * Math.PI * 2 + Math.PI/2;
             const x = Math.cos(angle) * 160 + (window.innerWidth / 2) - 45;
             const y = Math.sin(angle) * 120 + (window.innerHeight / 2) - 40;
@@ -165,7 +180,6 @@
             div.style.top = `${y}px`;
             div.style.borderColor = prof.color;
 
-            // 渲染手牌：自己看正面，别人看背面
             const cardsHtml = hand.map(card => {
                 if (isMe) {
                     const isRed = card.includes('♥') || card.includes('♦');
@@ -182,8 +196,8 @@
         });
     }
 
-    // 页面开启时，启动加载流程
-    loadEngine();
+    // 网页加载完毕后，立刻开始探测引擎
+    window.onload = bootEngine;
 </script>
 </body>
 </html>
