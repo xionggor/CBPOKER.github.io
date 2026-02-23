@@ -1,68 +1,49 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CB POKER</title>
+    <title>CB POKER TEST</title>
     <style>
-        :root { --poker-green: #1a4a32; --gold: #ffd700; }
-        body { background: #121212; color: white; font-family: sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        #room-link { position: absolute; top: 10px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; font-size: 12px; text-align: center; width: 90%; }
-        #poker-table { width: 80vw; height: 40vh; max-width: 500px; background: radial-gradient(circle, #2d6a4f 0%, #1b4332 100%); border: 10px solid #3d2b1f; border-radius: 200px; display: flex; align-items: center; justify-content: center; position: relative; }
-        .controls { position: fixed; bottom: 30px; display: flex; gap: 10px; }
-        button { padding: 12px 20px; border-radius: 20px; border: none; background: var(--gold); font-weight: bold; cursor: pointer; }
+        body { background: #121212; color: white; text-align: center; font-family: sans-serif; }
+        #status { padding: 20px; color: gold; }
+        #start-btn { padding: 20px 40px; font-size: 20px; background: #27ae60; color: white; border: none; border-radius: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
+    <div id="status">第一步：请点击下方按钮启动多人引擎</div>
+    <button id="start-btn" onclick="connectGame()">点击进入游戏</button>
 
-<div id="room-link">正在启动游戏引擎... (如果长时间没反应，请刷新)</div>
+    <script src="https://unpkg.com/playroomkit/dist/playroomkit.js"></script>
 
-<div id="poker-table">
-    <div id="pot-display" style="font-size: 30px;">$0</div>
-</div>
-
-<div class="controls">
-    <button id="betBtn">下注 $100</button>
-</div>
-
-<script type="module">
-    // 直接从官方推荐的 CDN 导入
-    import { insertCoin, onPlayerJoin, getState, setState, onStateChange } 
-    from "https://cdn.jsdelivr.net/npm/playroomkit/dist/playroomkit.js";
-
-    async function init() {
-        const linkEl = document.getElementById("room-link");
-
-        try {
-            console.log("正在尝试连接 Playroom...");
+    <script>
+        async function connectGame() {
+            const btn = document.getElementById("start-btn");
+            const status = document.getElementById("status");
             
-            // 强制配置：显示大厅，并设置游戏 ID (可以使用任何字符串)
-            await insertCoin({
-                gameId: "cb-poker-2026", 
-                skipLobby: false
-            });
+            btn.innerText = "正在连接...";
+            status.innerText = "正在尝试连接 Playroom 服务器...";
 
-            console.log("连接成功！");
-            linkEl.innerHTML = `已连接！房间链接: <span style="color:var(--gold)">${window.location.href}</span>`;
+            try {
+                // 尝试初始化
+                await Playroom.insertCoin({
+                    gameId: "cbpoker_test_123",
+                    skipLobby: false
+                });
+                
+                status.innerText = "连接成功！";
+                btn.style.display = "none";
+                
+                // 连接成功后的逻辑
+                Playroom.onPlayerJoin(() => {
+                    status.innerText = "玩家已加入，当前底池: $" + (Playroom.getState("pot") || 0);
+                });
 
-            // 同步底池
-            onStateChange("pot", (val) => {
-                document.getElementById("pot-display").innerText = `$${val || 0}`;
-            });
-
-            document.getElementById("betBtn").onclick = () => {
-                const current = getState("pot") || 0;
-                setState("pot", current + 100, true);
-            };
-
-        } catch (error) {
-            console.error("初始化失败:", error);
-            linkEl.innerText = "引擎启动失败，请尝试在无痕模式下打开或检查浏览器插件。";
+            } catch (e) {
+                console.error(e);
+                status.innerText = "连接失败，原因: " + e.message;
+                btn.innerText = "重试";
+            }
         }
-    }
-
-    // 确保 DOM 加载后运行
-    init();
-</script>
+    </script>
 </body>
 </html>
