@@ -3,69 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CB POKER - DEBUG DONE</title>
+    <title>CB POKER - Multiplayer</title>
     <style>
-        body { background: #121212; color: white; text-align: center; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        #status { color: gold; font-size: 1.2rem; margin-bottom: 20px; }
-        button { padding: 15px 30px; font-size: 1rem; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; display: none; }
-        .error { color: #ff4d4d; font-size: 14px; margin-top: 10px; }
+        :root { --poker-green: #1a4a32; --gold: #ffd700; --felt: #2d6a4f; }
+        body { background: #121212; color: white; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        
+        /* 牌桌设计 */
+        #poker-table { 
+            width: 85vw; height: 45vh; max-width: 700px; 
+            background: radial-gradient(circle, var(--felt) 0%, #1b4332 100%); 
+            border: 12px solid #3d2b1f; border-radius: 200px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; 
+        }
+
+        #pot-display { font-size: 2.5rem; color: var(--gold); font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        #room-link { position: absolute; top: 15px; background: rgba(0,0,0,0.4); padding: 8px 15px; border-radius: 20px; font-size: 12px; color: var(--gold); border: 1px solid var(--gold); }
+
+        /* 玩家环绕布局 */
+        #players-ring { position: absolute; width: 100%; height: 100%; pointer-events: none; }
+        .player-card { 
+            position: absolute; background: rgba(0,0,0,0.85); border: 2px solid #555; 
+            padding: 10px; border-radius: 12px; width: 90px; text-align: center; 
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: auto;
+        }
+
+        /* 扑克牌样式 */
+        .card-font { font-size: 20px; font-weight: bold; background: white; color: black; padding: 2px 5px; border-radius: 4px; margin: 0 2px; }
+        .card-back { background: #7b2cbf; color: #7b2cbf; border: 1px solid white; }
+
+        /* 控制按钮 */
+        .controls { position: fixed; bottom: 40px; display: flex; gap: 15px; }
+        button { 
+            padding: 15px 30px; font-size: 1rem; cursor: pointer; border: none; border-radius: 50px; 
+            background: var(--gold); color: #000; font-weight: bold; box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+        }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; box-shadow: none; }
+        #deal-btn { background: #ffffff; }
     </style>
 </head>
 <body>
 
-<div id="app">
-    <div id="status">正在寻找游戏引擎...</div>
-    <button id="start-btn" onclick="connect()">进入游戏</button>
-    <div id="debug" class="error"></div>
+<div id="room-link">等待引擎初始化...</div>
+
+<div id="poker-table">
+    <div style="color: rgba(255,255,255,0.6); font-size: 14px; letter-spacing: 2px;">TOTAL POT</div>
+    <div id="pot-display">$0</div>
+</div>
+
+<div id="players-ring"></div>
+
+<div class="controls">
+    <button id="bet-btn" onclick="window.makeBet(100)">下注 $100</button>
+    <button id="deal-btn" onclick="window.startDeal()">开始发牌</button>
 </div>
 
 <script type="module">
-    // 我们尝试从三个不同的源动态导入，直到成功为止
-    const sources = [
-        "https://cdn.skypack.dev/playroomkit",
-        "https://cdn.jsdelivr.net/npm/playroomkit/dist/playroomkit.js",
-        "https://esm.run/playroomkit"
-    ];
+    import { insertCoin, onPlayerJoin, getState, setState, myPlayer, getPlayers, isHost, onStateChange } 
+    from "https://cdn.skypack.dev/playroomkit";
 
-    let PlayroomLib = null;
+    const potEl = document.getElementById("pot-display");
+    const linkEl = document.getElementById("room-link");
+    const dealBtn = document.getElementById("deal-btn");
 
-    async function loadEngine() {
-        const debug = document.getElementById("debug");
-        const status = document.getElementById("status");
+    async function init() {
+        await insertCoin({ gameId: "cb_poker_v2" });
+        linkEl.innerHTML = `邀请好友: <span style="font-family:monospace;">${window.location.href}</span>`;
+        
+        // 只有房主能点发牌
+        if (!isHost()) {
+            dealBtn.disabled = true;
+            dealBtn.innerText = "等待房主...";
+        }
 
-        for (const src of sources) {
-            try {
-                console.log("正在尝试加载:", src);
-                const module = await import(src);
-                // Playroom 有时导出在 default 中，有时直接导出
-                PlayroomLib = module.default || module;
-                
-                if (PlayroomLib && PlayroomLib.insertCoin) {
-                    status.innerText = "✅ 引擎已锁定！";
-                    document.getElementById("start-btn").style.display = "inline-block";
-                    return;
+        onPlayerJoin(render);
+        onStateChange("pot", (val) => { potEl.innerText = `$${val || 0}`; });
+        onStateChange("gameRound", render); // 轮次变化时刷新界面
+    }
+
+    // --- 游戏逻辑 ---
+
+    // 1. 发牌逻辑
+    window.startDeal = async () => {
+        if (!isHost()) return;
+        
+        // 生成一副牌并洗牌
+        let deck = [];
+        const suits = ['♠', '♥', '♣', '♦'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        suits.forEach(s => values.forEach(v => deck.push(v + s)));
+        deck.sort(() => Math.random() - 0.5);
+
+        // 给每个玩家发两张私有的牌
+        const players = getPlayers();
+        players.forEach(p => {
+            const hand = [deck.pop(), deck.pop()];
+            p.setState("hand", hand);
+        });
+
+        // 重置底池并增加回合数触发同步
+        const round = getState("gameRound") || 0;
+        setState("gameRound", round + 1, true);
+        setState("pot", 0, true);
+    };
+
+    // 2. 下注逻辑
+    window.makeBet = (amount) => {
+        const currentPot = getState("pot") || 0;
+        setState("pot", currentPot + amount, true);
+    };
+
+    // --- UI 渲染 ---
+
+    function render() {
+        const players = getPlayers();
+        const me = myPlayer();
+        const ring = document.getElementById("players-ring");
+        ring.innerHTML = "";
+
+        players.forEach((p, i) => {
+            const prof = p.getProfile();
+            const hand = p.getState("hand") || [];
+            const isMe = p.id === me.id;
+
+            // 计算环绕位置 (数学公式让玩家围成一圈)
+            const angle = (i / players.length) * Math.PI * 2 + Math.PI/2;
+            const x = Math.cos(angle) * 180 + (window.innerWidth / 2) - 50;
+            const y = Math.sin(angle) * 140 + (window.innerHeight / 2) - 40;
+
+            const div = document.createElement("div");
+            div.className = "player-card";
+            div.style.left = `${x}px`;
+            div.style.top = `${y}px`;
+            div.style.borderColor = prof.color;
+
+            // 如果是自己，显示花色；如果是别人，显示背面
+            const cardsHtml = hand.map(card => {
+                if (isMe) {
+                    const isRed = card.includes('♥') || card.includes('♦');
+                    return `<span class="card-font" style="color:${isRed?'red':'black'}">${card}</span>`;
                 }
-            } catch (e) {
-                console.warn(`源 ${src} 失败，尝试下一个...`);
-            }
-        }
-        status.innerText = "❌ 引擎加载失败";
-        debug.innerText = "原因：所有 CDN 渠道均无法访问。请检查您的网络是否存在特殊的防火墙设置。";
+                return `<span class="card-font card-back">??</span>`;
+            }).join("");
+
+            div.innerHTML = `
+                <div style="color:${prof.color}; font-size:12px; margin-bottom:5px;">${prof.name} ${isMe?'(你)':''}</div>
+                <div style="display:flex; justify-content:center;">${cardsHtml || '<span style="color:#444; font-size:10px;">等待发牌</span>'}</div>
+            `;
+            ring.appendChild(div);
+        });
     }
 
-    window.connect = async function() {
-        try {
-            await PlayroomLib.insertCoin({
-                gameId: "cbpoker_2026_test",
-                skipLobby: false
-            });
-            document.getElementById("status").innerText = "🎉 联机成功！";
-        } catch (err) {
-            alert("连接服务器失败: " + err.message);
-        }
-    }
-
-    loadEngine();
+    init();
 </script>
+
 </body>
 </html>
