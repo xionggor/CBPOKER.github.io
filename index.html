@@ -3,77 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的多人德州扑克</title>
+    <title>CB POKER - 多人联机版</title>
     <style>
-        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; }
-        #game-table { 
-            width: 300px; height: 300px; background: #076324; 
-            border: 10px solid #3d2b1f; border-radius: 50%; 
-            margin: 50px auto; position: relative;
-            display: flex; align-items: center; justify-content: center;
+        :root { --poker-green: #1a4a32; --gold: #ffd700; }
+        body { background: #121212; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow: hidden; }
+        
+        /* 游戏桌面 */
+        #table-container { 
+            position: relative; width: 100vw; height: 100vh; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        #pot { font-size: 24px; font-weight: bold; }
-        .controls { margin-top: 20px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: gold; border: none; border-radius: 5px; }
-        #players-list { margin-top: 30px; display: flex; justify-content: center; gap: 10px; }
-        .player-tag { padding: 5px 10px; background: #444; border-radius: 15px; font-size: 12px; }
+        #poker-table { 
+            width: 80vw; height: 50vh; max-width: 600px;
+            background: radial-gradient(circle, #2d6a4f 0%, #1b4332 100%);
+            border: 12px solid #3d2b1f; border-radius: 200px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 50px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative;
+        }
+
+        /* 状态显示 */
+        #pot-display { font-size: 2rem; color: var(--gold); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-weight: bold; }
+        #room-link { position: absolute; top: 10px; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; font-size: 12px; max-width: 80%; word-break: break-all; }
+
+        /* 玩家列表 */
+        #players-ring { position: absolute; width: 100%; height: 100%; pointer-events: none; }
+        .player-card { 
+            position: absolute; background: rgba(0,0,0,0.8); border: 1px solid var(--gold);
+            padding: 10px; border-radius: 8px; width: 80px; text-align: center;
+        }
+
+        /* 控制区 */
+        .controls { position: fixed; bottom: 30px; display: flex; gap: 15px; }
+        button { 
+            padding: 15px 25px; font-size: 1rem; cursor: pointer; border: none; border-radius: 50px;
+            background: var(--gold); color: #000; font-weight: bold; transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        button.reset { background: #ff4d4d; color: white; }
+
+        .card-slot { width: 40px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 4px; display: inline-block; margin: 2px; border: 1px dashed rgba(255,255,255,0.3); }
     </style>
 </head>
 <body>
 
-    <h1>多人实时同步测试</h1>
-    
-    <div id="game-table">
-        <div id="pot">底池: $0</div>
+<div id="table-container">
+    <div id="room-link">正在加载房间链接...</div>
+
+    <div id="poker-table">
+        <div style="color: rgba(255,255,255,0.5); margin-bottom: 10px;">TOTAL POT</div>
+        <div id="pot-display">$0</div>
+        <div id="community-cards" style="margin-top: 20px;">
+            <div class="card-slot"></div><div class="card-slot"></div><div class="card-slot"></div>
+        </div>
     </div>
+
+    <div id="players-ring"></div>
 
     <div class="controls">
-        <button onclick="addMoney()">下注 $100</button>
-        <button onclick="resetPot()" style="background: #ff4444; color: white;">重置</button>
+        <button onclick="handleBet(100)">下注 $100</button>
+        <button onclick="handleBet(500)">下注 $500</button>
+        <button class="reset" onclick="resetGame()">重置局</button>
     </div>
+</div>
 
-    <h3>当前在线玩家:</h3>
-    <div id="players-list"></div>
+<script src="https://cdn.jsdelivr.net/npm/playroomkit/dist/playroomkit.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/playroomkit/dist/playroomkit.js"></script>
-    
-    <script>
-        // 1. 初始化多人模式
-        async function init() {
-            await Playroom.insertCoin(); // 这行代码会自动处理房间、UI和链接
-            
-            // 2. 监听玩家加入并更新列表
-            Playroom.onPlayerJoin(updatePlayerList);
-            
-            // 3. 监听底池变化 (核心同步逻辑)
-            Playroom.onStateChange("pot", (newPot) => {
-                document.getElementById("pot").innerText = `底池: $${newPot || 0}`;
-            });
-        }
+<script>
+    const potEl = document.getElementById("pot-display");
+    const linkEl = document.getElementById("room-link");
+    const playersRing = document.getElementById("players-ring");
 
-        // 下注逻辑
-        function addMoney() {
-            const currentPot = Playroom.getState("pot") || 0;
-            Playroom.setState("pot", currentPot + 100, true); // true 表示同步给所有人
-        }
+    async function init() {
+        // 初始化
+        await Playroom.insertCoin();
 
-        // 重置逻辑
-        function resetPot() {
+        // 显示房间链接
+        linkEl.innerHTML = `分享链接邀请好友: <span style="color:var(--gold)">${window.location.href}</span>`;
+
+        // 监听玩家加入
+        Playroom.onPlayerJoin(updateUI);
+        
+        // 监听底池变化
+        Playroom.onStateChange("pot", (newPot) => {
+            potEl.innerText = `$${newPot || 0}`;
+        });
+    }
+
+    // 处理下注
+    function handleBet(amount) {
+        const currentPot = Playroom.getState("pot") || 0;
+        Playroom.setState("pot", currentPot + amount, true);
+        
+        // 给当前玩家增加本地状态记录（例如筹码）
+        const me = Playroom.myPlayer();
+        const myChips = me.getState("chips") || 5000;
+        me.setState("chips", myChips - amount);
+        updateUI();
+    }
+
+    // 重置游戏
+    function resetGame() {
+        if (Playroom.isHost()) {
             Playroom.setState("pot", 0, true);
+            Playroom.getPlayers().forEach(p => p.setState("chips", 5000));
+        } else {
+            alert("只有房主可以重置游戏");
         }
+    }
 
-        // 更新 UI 上的玩家列表
-        function updatePlayerList() {
-            const players = Playroom.getPlayers();
-            const listEl = document.getElementById("players-list");
-            listEl.innerHTML = "";
-            players.forEach(p => {
-                const profile = p.getProfile();
-                listEl.innerHTML += `<div class="player-tag" style="color:${profile.color}">${profile.name}</div>`;
-            });
-        }
+    // 更新玩家 UI 环绕效果
+    function updateUI() {
+        const players = Playroom.getPlayers();
+        playersRing.innerHTML = "";
 
-        init();
-    </script>
+        players.forEach((p, index) => {
+            const profile = p.getProfile();
+            const chips = p.getState("chips") || 5000;
+            const angle = (index / players.length) * Math.PI * 2;
+            
+            // 计算环绕位置
+            const x = Math.cos(angle) * 150 + (window.innerWidth / 2) - 40;
+            const y = Math.sin(angle) * 120 + (window.innerHeight / 2) - 30;
+
+            const playerDiv = document.createElement("div");
+            playerDiv.className = "player-card";
+            playerDiv.style.left = `${x}px`;
+            playerDiv.style.top = `${y}px`;
+            playerDiv.style.borderColor = profile.color;
+            playerDiv.innerHTML = `
+                <div style="font-size:10px; color:${profile.color}">${profile.name}</div>
+                <div style="font-size:14px;">$${chips}</div>
+            `;
+            playersRing.appendChild(playerDiv);
+        });
+    }
+
+    init();
+</script>
 </body>
 </html>
