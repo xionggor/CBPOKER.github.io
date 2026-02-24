@@ -6,7 +6,11 @@
     <title>CB POKER - Live Table</title>
     <style>
         /* === 核心颜色与基础设定 === */
-        :root { --bg-dark: #242b35; --table-inner: #248ceb; --panel-bg: #11151a; --gold: #ffd700; --active-green: #2ecc71; }
+        :root { 
+            --bg-dark: #242b35; --table-inner: #248ceb; --panel-bg: #11151a; 
+            --gold: #ffd700; --active-green: #2ecc71; 
+            --btn-fold: #d95379; --btn-call: #1976d2; --btn-raise: #0d47a1;
+        }
         body { margin: 0; padding: 0; background-color: var(--bg-dark); color: white; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
         .view-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; }
         .hidden { display: none !important; opacity: 0; pointer-events: none; }
@@ -38,20 +42,14 @@
         .top-left-logo { position: absolute; top: 20px; left: 20px; font-size: 24px; font-weight: 900; letter-spacing: 2px; }
         .community-cards-area { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; gap: 8px; align-items: center; z-index: 5; }
 
-        /* === 邀请链接胶囊 (对标原图样式) === */
+        /* === 邀请链接胶囊 (常驻) === */
         .invite-pill {
-            background: rgba(17, 21, 26, 0.95);
-            padding: 20px 40px;
-            border-radius: 50px;
-            text-align: center;
-            border: 1px solid #333;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            transition: 0.2s;
+            background: rgba(17, 21, 26, 0.95); padding: 20px 40px; border-radius: 50px; text-align: center;
+            border: 1px solid #333; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s;
         }
         .invite-pill:hover { background: #1a2028; transform: scale(1.02); }
 
-        /* === 扑克牌与玩家座位样式 === */
+        /* === 扑克牌与玩家座位 === */
         .playing-card { background: white; color: black; width: 42px; height: 60px; border-radius: 5px; font-weight: bold; font-size: 18px; display: flex; justify-content: center; align-items: center; box-shadow: -1px 2px 5px rgba(0,0,0,0.4); border: 1px solid #ccc; }
         .playing-card.red { color: #d32f2f; }
         .playing-card.back { background: #1976d2; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,.1) 5px, rgba(255,255,255,.1) 10px); color: transparent;}
@@ -61,12 +59,12 @@
         .player-card.active { border-color: var(--active-green); box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);}
         .player-card.active .player-chips { background: var(--active-green); color: #000; }
         
-        /* 【核心修复】极简的空座位：去掉了文字和图标，只保留微弱的半透明占位框 */
+        /* 极简空座位：无文字，无加号，只保留极其微弱的透明轮廓 */
         .player-card.empty-seat { 
             background: rgba(255, 255, 255, 0.03); 
             border: 2px solid rgba(255, 255, 255, 0.05); 
             box-shadow: none; 
-            height: 85px; /* 撑开高度，和真实玩家卡片一致 */
+            height: 85px; 
             border-radius: 8px;
         }
         
@@ -77,12 +75,15 @@
         
         .hole-cards { position: absolute; left: 50%; transform: translateX(-50%); display: flex; z-index: 5; }
         .card-1 { margin-right: -10px; z-index: 1; } .card-2 { z-index: 2; }
-        
-        /* 排版逻辑定位 */
-        .pos-bottom .hole-cards { top: -45px; } 
-        .pos-top .hole-cards { top: calc(100% - 15px); } 
+        .bet-indicator { position: absolute; background: rgba(0,0,0,0.8); padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 4px; border: 1px solid #555; z-index: 12; left: 50%; transform: translateX(-50%); white-space: nowrap; color: var(--gold);}
 
-        /* 【核心修复】完美的 10 人桌对称排版 (上下各3，左右各2) */
+        /* 排版逻辑定位 */
+        .pos-bottom .hole-cards { top: -45px; } .pos-bottom .bet-indicator { bottom: calc(100% + 55px); }
+        .pos-top .hole-cards { top: calc(100% - 15px); } .pos-top .bet-indicator { top: calc(100% + 50px); }
+        .bet-right .bet-indicator { top: 50%; left: calc(100% + 15px); bottom: auto; transform: translateY(-50%); }
+        .bet-left .bet-indicator { top: 50%; right: calc(100% + 15px); left: auto; bottom: auto; transform: translateY(-50%); }
+
+        /* 完美的 10 人对称坐标 (上下各3，左右各2) */
         .s-btm-c { top: 102%; left: 50%; }
         .s-lft-b { top: 75%; left: -3%; }
         .s-lft-t { top: 25%; left: -3%; }
@@ -94,9 +95,17 @@
         .s-btm-r { top: 102%; left: 80%; }
         .s-btm-l { top: 102%; left: 20%; }
 
-        /* 房主面板 */
+        /* === 面板区域 === */
         .host-panel { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; font-size: 12px; color: #aaa; z-index: 20;}
-        .host-panel button { margin-top:10px; background:var(--gold); border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold; width: 100%;}
+        .host-panel button { margin-top:10px; background:var(--gold); color:black; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold; width: 100%;}
+        
+        .bottom-right-panel { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 15px; align-items: flex-end; z-index: 20;}
+        .action-box { display: flex; flex-direction: column; gap: 10px; width: 140px;}
+        .turn-info { text-align: right; margin-bottom: 5px; height: 35px;}
+        .turn-title { color: var(--active-green); font-size: 14px; font-weight: bold; letter-spacing: 1px;}
+        .action-btn { border: none; border-radius: 50px; padding: 15px; font-size: 16px; font-weight: 900; color: white; cursor: pointer; display: flex; flex-direction: column; align-items: center; line-height: 1.2; box-shadow: 0 4px 10px rgba(0,0,0,0.3);}
+        .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-fold { background: var(--btn-fold); } .btn-call { background: var(--btn-call); } .btn-raise { background: var(--btn-raise); }
     </style>
 </head>
 <body>
@@ -136,26 +145,38 @@
             <div class="pot-display-container"><span class="pot-label">TOTAL POT</span><span class="pot-value" id="ui-pot">$0</span></div>
             <div class="community-cards-area" id="ui-board"></div>
             
-            <div id="wait-msg" style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2; display: flex; flex-direction: column; align-items: center;">
+            <div id="invite-pill-container" style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:100; display: flex; flex-direction: column; align-items: center;">
                 <div class="invite-pill" onclick="copyInviteLink()">
-                    <div style="color: white; font-weight: bold; font-size: 16px; margin-bottom: 5px;">Share this with your friends (click to copy):</div>
-                    <div id="display-room-url" style="color: #aaa; font-style: italic; font-size: 14px;">------</div>
+                    <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 5px; opacity: 0.9;">Share this with your friends (click to copy):</div>
+                    <div id="display-room-url" style="color: #8ca0b3; font-style: italic; font-size: 13px; letter-spacing: 0.5px;">Generating link...</div>
                 </div>
             </div>
 
             <div id="players-layer"></div>
         </div>
 
-        <div class="host-panel" id="host-panel" class="hidden">
-            房间规则：买入 $<span id="info-buyin">0</span> | 盲注 <span id="info-blinds">0/0</span><br>
+        <div class="host-panel hidden" id="host-panel">
+            <div style="margin-bottom: 8px; opacity: 0.8;">
+                规则: $<span id="info-buyin">0</span> | 盲注 <span id="info-blinds">0/0</span>
+            </div>
             <button onclick="send({type:'START_GAME'})" id="btn-start">开始发牌</button>
         </div>
+
+        <div class="bottom-right-panel" id="action-panel">
+            <div class="action-box">
+                <div class="turn-info" id="ui-turn-info"></div>
+                <button class="action-btn btn-fold" id="btn-fold" onclick="send({type:'FOLD'})" disabled>FOLD</button>
+                <button class="action-btn btn-call" id="btn-call" onclick="send({type:'BET', amount:0})" disabled>CHECK / CALL</button>
+                <button class="action-btn btn-raise" id="btn-raise" onclick="send({type:'BET', amount:100})" disabled>RAISE 100</button>
+            </div>
+        </div>
     </div>
+
 
 <script>
     const BACKEND_URL = "https://poker-server.zxc717209554.workers.dev";
     
-    // 顺时针完美的 10 人座位分配 (从主视角玩家开始)
+    // 完美的 10 人轴对称座位
     const SEAT_ORDER = ['s-btm-c', 's-lft-b', 's-lft-t', 's-top-l', 's-top-c', 's-top-r', 's-rgt-t', 's-rgt-b', 's-btm-r', 's-btm-l'];
     const AVATARS = ['😎', '🤖', '🤡', '🤠', '👽', '👻', '🐼', '🧛', '🐻', '🦊'];
     const MAX_SEATS = 10;
@@ -164,6 +185,7 @@
     let myName = "";
     let currentRoomId = null;
 
+    // 检查入口链接
     window.onload = () => {
         const roomCode = new URLSearchParams(window.location.search).get('room');
         if (roomCode) document.getElementById('join-code').value = roomCode;
@@ -174,7 +196,7 @@
         document.getElementById(targetViewId).classList.remove('hidden');
     }
 
-    // 点击复制链接的交互
+    // 复制分享链接胶囊
     function copyInviteLink() {
         navigator.clipboard.writeText(window.location.href).then(() => {
             const el = document.getElementById('display-room-url');
@@ -183,11 +205,12 @@
             el.style.color = "var(--active-green)";
             setTimeout(() => {
                 el.innerText = originalText;
-                el.style.color = "#aaa";
+                el.style.color = "#8ca0b3";
             }, 2000);
         });
     }
 
+    // --- 房主建房 ---
     async function startGameFlow() {
         myName = document.getElementById('host-name').value.trim();
         if (!myName) return alert("请输入你的昵称");
@@ -217,11 +240,11 @@
             navTo('view-game');
             document.getElementById('host-panel').classList.remove('hidden');
             
-            // 【核心修复】强制提前把“房主自己”画到第一个位子上，杜绝空白期！
+            // 【瞬间入座】直接把房主自己渲染到主位，避免空白期
             renderEngine({ 
-                game: { pot: 0, board: [] }, 
-                players: [{ name: myName, chips: buyInVal, hand: [] }], 
-                status: "WAITING" 
+                status: "WAITING",
+                game: { pot: 0, status: "WAITING", board: [] }, 
+                players: [{ name: myName, chips: buyInVal, hand: [] }] 
             });
             
         } catch (e) {
@@ -229,6 +252,7 @@
         }
     }
 
+    // --- 玩家加入 ---
     function joinByCode() {
         currentRoomId = document.getElementById('join-code').value.trim();
         if (!currentRoomId) return alert("请输入房间码");
@@ -241,11 +265,11 @@
         navTo('view-game');
         document.getElementById('host-panel').classList.add('hidden'); 
         
-        // 普通玩家先画一个带自己名字的初始状态
+        // 玩家自己的初始占位
         renderEngine({ 
-            game: { pot: 0, board: [] }, 
-            players: [{ name: myName, chips: "...", hand: [] }], 
-            status: "WAITING" 
+            status: "WAITING",
+            game: { pot: 0, status: "WAITING", board: [] }, 
+            players: [{ name: myName, chips: "...", hand: [] }] 
         });
     }
 
@@ -258,28 +282,43 @@
 
     function send(obj) { if(ws) ws.send(JSON.stringify(obj)); }
 
+    // --- 核心渲染引擎 ---
     function renderEngine(state) {
         document.getElementById("ui-pot").innerText = "$" + state.game.pot;
         
-        if(state.status === "PLAYING" || state.game.status !== "WAITING") {
-            document.getElementById("wait-msg").classList.add("hidden");
+        // 【控制分享胶囊的隐藏与显示】
+        const pill = document.getElementById("invite-pill-container");
+        if(state.game.status !== "WAITING") {
+            pill.classList.add("hidden"); // 游戏一旦开始，永久隐藏邀请链接
             if(document.getElementById("btn-start")) document.getElementById("btn-start").classList.add("hidden");
+        } else {
+            pill.classList.remove("hidden"); // 等待状态下，永远显示
         }
 
         const layer = document.getElementById("players-layer");
         layer.innerHTML = "";
         
-        // 渲染 10 人圆桌
+        let isMyTurn = false;
+
+        // 循环画出 10 人圆桌
         for (let i = 0; i < MAX_SEATS; i++) {
             const seatClass = SEAT_ORDER[i];
             const p = state.players[i]; 
             
-            // 智能识别上下位置来翻转底牌方向
+            // 识别该位置在上方还是下方，调整排版
             let posClass = "pos-bottom";
             if (seatClass.includes("top") || seatClass.includes("lft-t") || seatClass.includes("rgt-t")) posClass = "pos-top";
             
+            // 特殊侧边位置，筹码横向推送
+            let betClass = "";
+            if (seatClass.includes("lft")) betClass = "bet-right";
+            if (seatClass.includes("rgt")) betClass = "bet-left";
+
             if (p) {
-                // 有玩家：画真实卡片
+                // 判断是否轮到此人行动
+                const isActive = (state.game.status !== "WAITING" && i === state.game.turnIndex);
+                if (isActive && p.name === myName) isMyTurn = true;
+
                 const avatar = AVATARS[i % AVATARS.length];
                 let cardsHtml = "";
                 if (p.hand && p.hand.length > 0) {
@@ -291,22 +330,40 @@
                 }
 
                 layer.innerHTML += `
-                    <div class="player-seat ${seatClass} ${posClass}">
+                    <div class="player-seat ${seatClass} ${posClass} ${betClass}">
                         <div class="hole-cards">${cardsHtml}</div>
-                        <div class="player-card">
+                        <div class="player-card ${isActive ? 'active' : ''}">
                             <div class="player-avatar"><span>${avatar}</span></div>
                             <div class="player-name">${p.name}</div>
                             <div class="player-chips">$${p.chips}</div>
                         </div>
+                        ${isActive ? `<div class="bet-indicator">思考中...</div>` : ''}
                     </div>
                 `;
             } else {
-                // 没有玩家：画极其克制的纯背景空座位
+                // 【极简空位】
                 layer.innerHTML += `
                     <div class="player-seat ${seatClass} ${posClass}">
                         <div class="player-card empty-seat"></div>
                     </div>
                 `;
+            }
+        }
+
+        // --- 渲染右下角动作台的状态 ---
+        const btns = ["btn-fold", "btn-call", "btn-raise"];
+        const turnInfo = document.getElementById("ui-turn-info");
+        
+        if (state.game.status === "WAITING") {
+            turnInfo.innerHTML = `<span style="color:#aaa;">等待开始...</span>`;
+            btns.forEach(id => document.getElementById(id).disabled = true);
+        } else {
+            if (isMyTurn) {
+                turnInfo.innerHTML = `<div class="turn-title">YOUR TURN</div>`;
+                btns.forEach(id => document.getElementById(id).disabled = false);
+            } else {
+                turnInfo.innerHTML = `<span style="color:#aaa;">等待对手...</span>`;
+                btns.forEach(id => document.getElementById(id).disabled = true);
             }
         }
     }
