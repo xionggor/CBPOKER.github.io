@@ -20,6 +20,7 @@
         .logo-title { color: var(--gold); font-size: 32px; font-weight: 900; letter-spacing: 2px; margin-bottom: 30px; margin-top: 0;}
         .btn-main { width: 100%; padding: 16px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 15px; transition: 0.2s; }
         .btn-gold { background: var(--gold); color: black; } .btn-gold:hover { transform: scale(1.03); background: #e6c200; }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-dark { background: #2a3441; color: white; border: 1px solid #444; } .btn-dark:hover { background: #354252; }
         .input-group { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #333; }
         .input-code { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 2px; outline: none;}
@@ -54,6 +55,7 @@
         .player-card.active { border-color: var(--active-green); box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);}
         .player-card.active .player-chips { background: var(--active-green); color: #000; }
         
+        /* 纯净的半透明空座位 */
         .player-card.empty-seat { background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.05); box-shadow: none; height: 85px; border-radius: 8px; }
         
         .player-avatar { padding-top: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -70,6 +72,7 @@
         .bet-right .bet-indicator { top: 50%; left: calc(100% + 15px); bottom: auto; transform: translateY(-50%); }
         .bet-left .bet-indicator { top: 50%; right: calc(100% + 15px); left: auto; bottom: auto; transform: translateY(-50%); }
 
+        /* 10 人对称坐标 */
         .s-btm-c { top: 102%; left: 50%; } .s-lft-b { top: 75%; left: 6%; } .s-lft-t { top: 25%; left: 6%; } .s-top-l { top: -2%; left: 22%; } .s-top-c { top: -2%; left: 50%; }
         .s-top-r { top: -2%; left: 78%; } .s-rgt-t { top: 25%; left: 94%; } .s-rgt-b { top: 75%; left: 94%; } .s-btm-r { top: 102%; left: 78%; } .s-btm-l { top: 102%; left: 22%; }
 
@@ -90,6 +93,7 @@
         .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .btn-fold { background: var(--btn-fold); } .btn-call { background: var(--btn-call); } .btn-raise { background: var(--btn-raise); }
         
+        /* 中央浮动入座按钮 */
         #btn-take-seat { position:absolute; bottom:120px; left:50%; transform:translateX(-50%); padding: 15px 40px; border-radius: 50px; background:var(--gold); color:black; font-weight:bold; font-size:18px; border:none; cursor:pointer; z-index:30; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transition: 0.2s;}
         #btn-take-seat:hover { transform: translateX(-50%) scale(1.05); }
     </style>
@@ -125,11 +129,14 @@
     <div id="sit-modal" class="view-screen hidden" style="background: rgba(0,0,0,0.85); z-index: 200;">
         <div class="menu-card" style="width: 320px;">
             <h2 style="color:var(--gold); margin-top:0; margin-bottom: 20px;">Take a Seat</h2>
+            
             <div style="text-align: left; font-size: 13px; color:#aaa; margin-bottom: 8px;">1. 选择头像</div>
             <div id="avatar-grid" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom: 25px; background: #1a2028; padding: 15px; border-radius: 12px; border: 1px solid #333;"></div>
+            
             <div style="text-align: left; font-size: 13px; color:#aaa; margin-bottom: 8px;">2. 输入昵称</div>
             <input type="text" id="sit-name" class="input-code" placeholder="Your Nickname" style="width:100%; box-sizing:border-box; margin-bottom: 25px;">
-            <button class="btn-main btn-gold" onclick="confirmSit()">确定入座</button>
+            
+            <button id="btn-confirm-sit" class="btn-main btn-gold" onclick="confirmSit()">确定入座</button>
             <button class="btn-main btn-dark" style="margin-bottom:0;" onclick="document.getElementById('sit-modal').classList.add('hidden')">取消旁观</button>
         </div>
     </div>
@@ -169,6 +176,7 @@
 
 <script>
     const BACKEND_URL = "https://poker-server.zxc717209554.workers.dev";
+    
     const SEAT_ORDER = ['s-btm-c', 's-lft-b', 's-lft-t', 's-top-l', 's-top-c', 's-top-r', 's-rgt-t', 's-rgt-b', 's-btm-r', 's-btm-l'];
     const AVATAR_LIST = ['😎', '🤖', '🤡', '🤠', '👽', '👻', '🐼', '🧛', '🐻', '🦊', '🐯', '🐷'];
     const MAX_SEATS = 10;
@@ -177,6 +185,7 @@
     let myName = ""; 
     let currentRoomId = null;
     let selectedAvatar = '😎';
+    let isWaitingForServer = false; // 新增：等待服务器发牌的防卡死锁
 
     window.onload = () => {
         const roomCode = new URLSearchParams(window.location.search).get('room');
@@ -198,6 +207,7 @@
         });
     }
 
+    // --- 头像选择器 ---
     function openSitModal() {
         document.getElementById('sit-modal').classList.remove('hidden');
         renderAvatarGrid();
@@ -213,35 +223,42 @@
         renderAvatarGrid();
     }
 
-    // 【核心修复：智能排队发送机制】
+    // --- 【终极修复】带有防丢包、超时反馈的入座逻辑 ---
     function confirmSit() {
         const nameInput = document.getElementById('sit-name').value.trim();
-        if(!nameInput) return alert("请输入昵称");
+        if(!nameInput) return alert("请输入昵称！(注意：不要和别人重名)");
         
         myName = selectedAvatar + "|" + nameInput; 
+        isWaitingForServer = true; // 开启同步锁
         
-        // 先隐藏弹窗和按钮，制造瞬间入座的错觉
-        document.getElementById('sit-modal').classList.add('hidden');
-        document.getElementById('btn-take-seat').classList.add('hidden');
-        
-        // 自动探测 WebSocket 状态，如果没准备好就每 0.2 秒重试一次
-        let attempts = 0;
-        function tryJoin() {
-            if (ws && ws.readyState === 1) { // 1 代表 OPEN
-                ws.send(JSON.stringify({ type: "JOIN", name: myName }));
-            } else {
-                attempts++;
-                if (attempts < 20) { // 尝试 4 秒钟
-                    setTimeout(tryJoin, 200);
-                } else {
-                    alert("网络连接超时，请刷新页面重试！");
-                    document.getElementById('btn-take-seat').classList.remove('hidden');
-                }
-            }
+        // 视觉反馈：变为加载中
+        const btn = document.getElementById('btn-confirm-sit');
+        btn.innerText = "正在同步云端...";
+        btn.disabled = true;
+
+        // 向服务器发射请求
+        if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "JOIN", name: myName }));
+        } else {
+            // 如果碰巧网断了，强行重连一次
+            connectWebSocket();
+            setTimeout(() => {
+                if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "JOIN", name: myName }));
+            }, 1000);
         }
-        tryJoin();
+
+        // 超时保险：如果 5 秒后还没收到服务器渲染，强行报错解锁
+        setTimeout(() => {
+            if (isWaitingForServer) {
+                alert("云端无响应。可能是因为您输入了重复的名字，或网络波动。请换个名字重试！");
+                btn.innerText = "确定入座";
+                btn.disabled = false;
+                isWaitingForServer = false;
+            }
+        }, 5000);
     }
 
+    // --- 房主建房流程 ---
     async function startGameFlow() {
         const buyInVal = parseFloat(document.getElementById('set-buyin').value) || 10000;
         const sb = parseFloat(document.getElementById('set-sb').value) || 50;
@@ -264,13 +281,15 @@
             navTo('view-game');
             document.getElementById('host-panel').classList.remove('hidden');
             
+            // 房主直接弹出选人框
             openSitModal(); 
             renderEngine({ status: "WAITING", game: { pot: 0, status: "WAITING", board: [] }, players: [] });
         } catch (e) {
-            alert("连接服务器失败，请检查 Cloudflare 后端。");
+            alert("无法连接 Cloudflare 服务器，请检查后端是否正常运行。");
         }
     }
 
+    // --- 玩家加入流程 ---
     function joinByCode() {
         currentRoomId = document.getElementById('join-code').value.trim();
         if (!currentRoomId) return alert("请输入房间码");
@@ -282,36 +301,49 @@
         navTo('view-game');
         document.getElementById('host-panel').classList.add('hidden'); 
         
+        // 旁观者渲染空桌
         renderEngine({ status: "WAITING", game: { pot: 0, status: "WAITING", board: [] }, players: [] });
     }
 
     function connectWebSocket() {
         const wsUrl = BACKEND_URL.replace("https://", "wss://") + `?roomId=${currentRoomId}`;
         ws = new WebSocket(wsUrl);
+        // 主动激活服务器
         ws.onopen = () => ws.send(JSON.stringify({ type: "PING" }));
-        ws.onmessage = (e) => renderEngine(JSON.parse(e.data));
+        ws.onmessage = (e) => {
+            try {
+                renderEngine(JSON.parse(e.data));
+            } catch (err) {
+                console.error("数据解析失败", err);
+            }
+        };
     }
 
-    function send(obj) { 
-        if(ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); 
-    }
+    function send(obj) { if(ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 
-    // 基于房间 ID 的固定洗牌算法（确保两人看到的随机座位一模一样）
+    // 【算法强化】基于房间 ID 生成一个稳定的随机排位地图
     function getSeatMap(roomId) {
         let seed = 0;
-        if (roomId) for(let i=0; i<roomId.length; i++) seed += roomId.charCodeAt(i);
+        if (roomId) {
+            for(let i=0; i<roomId.length; i++) seed += roomId.charCodeAt(i);
+        }
+        if (seed === 0) seed = 123;
         let seats = [0,1,2,3,4,5,6,7,8,9];
         for(let i=0; i<10; i++) {
             let j = (seed + i * 17) % 10;
-            if (isNaN(j)) j = 0;
+            if (isNaN(j) || j < 0) j = 0;
             let temp = seats[i]; seats[i] = seats[j]; seats[j] = temp;
         }
         return seats;
     }
 
+    // --- 安全渲染引擎 ---
     function renderEngine(state) {
+        if (!state || !state.game) return;
+
         document.getElementById("ui-pot").innerText = "$" + state.game.pot;
         
+        // 游戏一旦开始，隐藏分享链接和开始按钮
         const pill = document.getElementById("invite-pill-container");
         if(state.game.status !== "WAITING") {
             pill.classList.add("hidden"); 
@@ -320,10 +352,23 @@
             pill.classList.remove("hidden");
         }
 
-        let amISeated = state.players.some(p => p && p.name === myName && myName !== "");
+        // 判断当前浏览器里的人，是否已经被服务器承认入座
+        let playersArray = state.players || [];
+        let amISeated = playersArray.some(p => p && p.name === myName && myName !== "");
+        
+        // 【关键解绑】：收到服务器承认后，关闭模态框
+        if (isWaitingForServer && amISeated) {
+            isWaitingForServer = false; // 解除锁
+            document.getElementById('sit-modal').classList.add('hidden');
+            const btn = document.getElementById('btn-confirm-sit');
+            btn.innerText = "确定入座";
+            btn.disabled = false;
+        }
+
+        // 大按钮显示逻辑
         if (amISeated) {
             document.getElementById('btn-take-seat').classList.add('hidden'); 
-        } else if (myName === "") {
+        } else if (myName === "" || !isWaitingForServer) {
             document.getElementById('btn-take-seat').classList.remove('hidden'); 
         }
 
@@ -332,14 +377,21 @@
         
         let isMyTurn = false;
         
+        // 将服务器的玩家名单，通过防撞车算法分配到 10 个视觉座位上
         const visualMap = getSeatMap(currentRoomId);
         let displaySeats = new Array(MAX_SEATS).fill(null);
         
-        state.players.forEach((p, index) => {
+        playersArray.forEach((p, index) => {
+            if (!p) return;
             let visualSeatIndex = visualMap[index % 10]; 
+            // 如果发生了极小概率的冲突，往后顺延一个空位
+            while (displaySeats[visualSeatIndex] !== null) {
+                visualSeatIndex = (visualSeatIndex + 1) % 10;
+            }
             displaySeats[visualSeatIndex] = { ...p, realIndex: index };
         });
 
+        // 渲染 10 人圆桌
         for (let i = 0; i < MAX_SEATS; i++) {
             const seatClass = SEAT_ORDER[i];
             const p = displaySeats[i]; 
@@ -354,6 +406,7 @@
                 const isActive = (state.game.status !== "WAITING" && p.realIndex === state.game.turnIndex);
                 if (isActive && p.name === myName) isMyTurn = true;
 
+                // 拆解出头像和名字
                 let displayAvatar = '😎';
                 let displayName = p.name;
                 if (p.name.includes('|')) {
@@ -391,6 +444,7 @@
             }
         }
 
+        // --- 动作台状态 ---
         const btns = ["btn-fold", "btn-call", "btn-raise"];
         const turnInfo = document.getElementById("ui-turn-info");
         
