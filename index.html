@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CB POKER - Live Table</title>
+    <title>CB11 POKER - Live Table</title>
     <style>
         /* === 核心颜色与基础设定 === */
         :root { 
@@ -59,7 +59,7 @@
         .player-card.active { border-color: var(--active-green); box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);}
         .player-card.active .player-chips { background: var(--active-green); color: #000; }
         
-        /* 极简空座位：无文字，无加号，只保留极其微弱的透明轮廓 */
+        /* 极简空座位 */
         .player-card.empty-seat { 
             background: rgba(255, 255, 255, 0.03); 
             border: 2px solid rgba(255, 255, 255, 0.05); 
@@ -83,17 +83,17 @@
         .bet-right .bet-indicator { top: 50%; left: calc(100% + 15px); bottom: auto; transform: translateY(-50%); }
         .bet-left .bet-indicator { top: 50%; right: calc(100% + 15px); left: auto; bottom: auto; transform: translateY(-50%); }
 
-        /* 完美的 10 人对称坐标 (上下各3，左右各2) */
+        /* 【核心修复】防裁剪的安全坐标布局 (向内部收紧，绝不会被屏幕裁掉) */
         .s-btm-c { top: 102%; left: 50%; }
-        .s-lft-b { top: 75%; left: -3%; }
-        .s-lft-t { top: 25%; left: -3%; }
-        .s-top-l { top: -2%; left: 20%; }
+        .s-lft-b { top: 75%; left: 6%; }
+        .s-lft-t { top: 25%; left: 6%; }
+        .s-top-l { top: -2%; left: 22%; }
         .s-top-c { top: -2%; left: 50%; }
-        .s-top-r { top: -2%; left: 80%; }
-        .s-rgt-t { top: 25%; left: 103%; }
-        .s-rgt-b { top: 75%; left: 103%; }
-        .s-btm-r { top: 102%; left: 80%; }
-        .s-btm-l { top: 102%; left: 20%; }
+        .s-top-r { top: -2%; left: 78%; }
+        .s-rgt-t { top: 25%; left: 94%; }
+        .s-rgt-b { top: 75%; left: 94%; }
+        .s-btm-r { top: 102%; left: 78%; }
+        .s-btm-l { top: 102%; left: 22%; }
 
         /* === 面板区域 === */
         .host-panel { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; font-size: 12px; color: #aaa; z-index: 20;}
@@ -176,7 +176,7 @@
 <script>
     const BACKEND_URL = "https://poker-server.zxc717209554.workers.dev";
     
-    // 完美的 10 人轴对称座位
+    // 10人桌顺时针绝对坐标
     const SEAT_ORDER = ['s-btm-c', 's-lft-b', 's-lft-t', 's-top-l', 's-top-c', 's-top-r', 's-rgt-t', 's-rgt-b', 's-btm-r', 's-btm-l'];
     const AVATARS = ['😎', '🤖', '🤡', '🤠', '👽', '👻', '🐼', '🧛', '🐻', '🦊'];
     const MAX_SEATS = 10;
@@ -185,7 +185,6 @@
     let myName = "";
     let currentRoomId = null;
 
-    // 检查入口链接
     window.onload = () => {
         const roomCode = new URLSearchParams(window.location.search).get('room');
         if (roomCode) document.getElementById('join-code').value = roomCode;
@@ -196,7 +195,6 @@
         document.getElementById(targetViewId).classList.remove('hidden');
     }
 
-    // 复制分享链接胶囊
     function copyInviteLink() {
         navigator.clipboard.writeText(window.location.href).then(() => {
             const el = document.getElementById('display-room-url');
@@ -210,7 +208,6 @@
         });
     }
 
-    // --- 房主建房 ---
     async function startGameFlow() {
         myName = document.getElementById('host-name').value.trim();
         if (!myName) return alert("请输入你的昵称");
@@ -230,7 +227,6 @@
             const data = await res.json();
             currentRoomId = data.roomId; 
             
-            // 更新 URL 与面板信息
             window.history.pushState({}, "", `?room=${currentRoomId}`);
             document.getElementById('display-room-url').innerText = window.location.href;
             document.getElementById('info-buyin').innerText = settings.initialChips;
@@ -240,7 +236,6 @@
             navTo('view-game');
             document.getElementById('host-panel').classList.remove('hidden');
             
-            // 【瞬间入座】直接把房主自己渲染到主位，避免空白期
             renderEngine({ 
                 status: "WAITING",
                 game: { pot: 0, status: "WAITING", board: [] }, 
@@ -252,12 +247,11 @@
         }
     }
 
-    // --- 玩家加入 ---
     function joinByCode() {
         currentRoomId = document.getElementById('join-code').value.trim();
         if (!currentRoomId) return alert("请输入房间码");
         
-        myName = prompt("Enter your nickname (请输入昵称):") || "Player_" + Math.floor(Math.random()*100);
+        myName = prompt("Enter your nickname (请勿与房主重名):") || "Player_" + Math.floor(Math.random()*100);
         window.history.pushState({}, "", `?room=${currentRoomId}`);
         document.getElementById('display-room-url').innerText = window.location.href;
         
@@ -265,7 +259,6 @@
         navTo('view-game');
         document.getElementById('host-panel').classList.add('hidden'); 
         
-        // 玩家自己的初始占位
         renderEngine({ 
             status: "WAITING",
             game: { pot: 0, status: "WAITING", board: [] }, 
@@ -282,17 +275,15 @@
 
     function send(obj) { if(ws) ws.send(JSON.stringify(obj)); }
 
-    // --- 核心渲染引擎 ---
     function renderEngine(state) {
         document.getElementById("ui-pot").innerText = "$" + state.game.pot;
         
-        // 【控制分享胶囊的隐藏与显示】
         const pill = document.getElementById("invite-pill-container");
         if(state.game.status !== "WAITING") {
-            pill.classList.add("hidden"); // 游戏一旦开始，永久隐藏邀请链接
+            pill.classList.add("hidden"); 
             if(document.getElementById("btn-start")) document.getElementById("btn-start").classList.add("hidden");
         } else {
-            pill.classList.remove("hidden"); // 等待状态下，永远显示
+            pill.classList.remove("hidden");
         }
 
         const layer = document.getElementById("players-layer");
@@ -300,26 +291,37 @@
         
         let isMyTurn = false;
 
+        // 【核心修复：主角居中算法】
+        // 找到你自己在数组中的位置，把你的位置强制转到 0 号位 (正下方)
+        let myIndex = state.players.findIndex(p => p.name === myName);
+        if (myIndex === -1) myIndex = 0; // 如果还没连上，默认是 0
+
+        // 创建一个旋转后的新数组，保证你在 displayPlayers[0]
+        let displayPlayers = new Array(MAX_SEATS).fill(null);
+        state.players.forEach((p, i) => {
+            let offset = (i - myIndex + MAX_SEATS) % MAX_SEATS;
+            displayPlayers[offset] = p;
+        });
+
         // 循环画出 10 人圆桌
         for (let i = 0; i < MAX_SEATS; i++) {
             const seatClass = SEAT_ORDER[i];
-            const p = state.players[i]; 
+            const p = displayPlayers[i]; // 取旋转后的数据
             
-            // 识别该位置在上方还是下方，调整排版
             let posClass = "pos-bottom";
             if (seatClass.includes("top") || seatClass.includes("lft-t") || seatClass.includes("rgt-t")) posClass = "pos-top";
             
-            // 特殊侧边位置，筹码横向推送
             let betClass = "";
             if (seatClass.includes("lft")) betClass = "bet-right";
             if (seatClass.includes("rgt")) betClass = "bet-left";
 
             if (p) {
-                // 判断是否轮到此人行动
-                const isActive = (state.game.status !== "WAITING" && i === state.game.turnIndex);
+                // 判断此人是否在真实的 players 数组中处于行动回合
+                const realIndex = state.players.findIndex(rp => rp.name === p.name);
+                const isActive = (state.game.status !== "WAITING" && realIndex === state.game.turnIndex);
                 if (isActive && p.name === myName) isMyTurn = true;
 
-                const avatar = AVATARS[i % AVATARS.length];
+                const avatar = AVATARS[realIndex % AVATARS.length];
                 let cardsHtml = "";
                 if (p.hand && p.hand.length > 0) {
                     cardsHtml = p.hand.map((c, idx) => {
@@ -341,7 +343,6 @@
                     </div>
                 `;
             } else {
-                // 【极简空位】
                 layer.innerHTML += `
                     <div class="player-seat ${seatClass} ${posClass}">
                         <div class="player-card empty-seat"></div>
@@ -350,7 +351,7 @@
             }
         }
 
-        // --- 渲染右下角动作台的状态 ---
+        // --- 动作台状态 ---
         const btns = ["btn-fold", "btn-call", "btn-raise"];
         const turnInfo = document.getElementById("ui-turn-info");
         
