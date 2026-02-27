@@ -9,6 +9,7 @@
         :root { 
             --bg-dark: #242b35; --table-inner: #248ceb; --panel-bg: #11151a; 
             --gold: #ffd700; --active-green: #2ecc71; 
+            --btn-fold: #d95379; --btn-call: #1976d2; --btn-raise: #0d47a1;
         }
         body { margin: 0; padding: 0; background-color: var(--bg-dark); color: white; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
         .view-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; }
@@ -94,9 +95,7 @@
             background: #2ecc71; color: black; font-weight: 900; font-size: 13px;
             padding: 4px 15px; border-radius: 20px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
         }
-        .raise-control-area {
-            display: flex; flex-direction: column; gap: 12px; background: #1a2028; padding: 15px; border-radius: 12px; border: 1px solid #2a3441;
-        }
+        .raise-control-area { display: flex; flex-direction: column; gap: 12px; background: #1a2028; padding: 15px; border-radius: 12px; border: 1px solid #2a3441; }
         .raise-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #8ca0b3; font-weight: bold; }
         .raise-amount-display { font-size: 24px; color: var(--gold); font-weight: 900; letter-spacing: 1px; }
         .custom-slider { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; background: #333; outline: none; margin: 10px 0; }
@@ -109,6 +108,7 @@
         .main-action-row { display: flex; gap: 10px; height: 65px; }
         .action-btn { flex: 1; border: none; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.1s; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
         .action-btn:active { transform: scale(0.96); }
+        .action-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-title { font-size: 18px; font-weight: 900; letter-spacing: 1px; color: white; }
         .btn-sub { font-size: 13px; font-weight: bold; opacity: 0.9; margin-top: 2px; }
         .btn-fold { background: linear-gradient(145deg, #d95379, #b03a5b); }
@@ -229,7 +229,6 @@
     let isWaitingForServer = false;
     let latestGameState = null;
 
-    // 滑动条全局控制
     const slider = document.getElementById('raise-slider');
     const displayAmount = document.getElementById('display-amount');
     const btnRaiseSub = document.getElementById('btn-raise-sub');
@@ -307,7 +306,7 @@
 
         setTimeout(() => {
             if (isWaitingForServer) {
-                alert("云端无响应。可能是因为您输入了重复的名字，或网络波动。请换个名字重试！");
+                alert("云端无响应。请换个名字重试！");
                 btn.innerText = "确定入座"; btn.disabled = false; isWaitingForServer = false;
             }
         }, 5000);
@@ -423,8 +422,11 @@
                 let cardsHtml = "";
                 if (p.hand && p.hand.length > 0) {
                     cardsHtml = p.hand.map((c, idx) => {
-                        const isHidden = c === "??"; const isRed = !isHidden && (c.includes('♥') || c.includes('♦'));
-                        return `<div class="playing-card ${isHidden?'back':''} ${isRed?'red':''} card-${idx+1}">${isHidden?'':c}</div>`;
+                        // 【修复1】如果是别人的牌，且当前不是最终摊牌阶段，强制显示背面！
+                        const isHidden = (p.name !== myName && state.game.status !== "SHOWDOWN") || c === "??";
+                        const isRed = !isHidden && (c.includes('♥') || c.includes('♦'));
+                        const displayC = isHidden ? '' : c;
+                        return `<div class="playing-card ${isHidden?'back':''} ${isRed?'red':''} card-${idx+1}">${displayC}</div>`;
                     }).join("");
                 }
 
@@ -452,25 +454,24 @@
         const btnCallTitle = document.getElementById("btn-call-title");
         const btnCallSub = document.getElementById("btn-call-sub");
         
-        // 默认隐藏
+        // 【修复2】统一获取新版操作台的按钮 ID
+        const actBtns = ["btn-action-fold", "btn-action-call", "btn-action-raise"];
+        
         actionConsole.classList.add("hidden");
         waitingTip.classList.add("hidden");
 
         if (state.game.status !== "WAITING" && amISeated) {
             if (isMyTurn) {
-                // 轮到你，大操作台弹起！
                 actionConsole.classList.remove("hidden");
                 
                 const myData = playersArray.find(p => p && p.name === myName);
                 if (!myData) return;
                 
-                // 智能防报错的数字提取
                 const currentBet = Number(state.game.currentBet) || 0;
                 const myBet = Number(myData.betThisRound) || 0;
                 const myChips = Number(myData.chips) || 0;
                 const bigBlind = Number(state.game.bigBlind) || 100;
                 
-                // 计算跟注额
                 const callAmount = currentBet - myBet;
                 if (callAmount <= 0) {
                     btnCallTitle.innerText = "CHECK";
@@ -482,32 +483,35 @@
                     document.getElementById("btn-action-call").style.background = "linear-gradient(145deg, #1976d2, #115293)";
                 }
 
-                // 计算加注滑动条区间
                 const minRaiseTo = currentBet + bigBlind;
                 slider.min = minRaiseTo;
-                slider.max = myChips + myBet; // 能下注的全部家当
+                slider.max = myChips + myBet; 
                 
                 if (parseInt(slider.value) < minRaiseTo || parseInt(slider.value) > slider.max) {
                     slider.value = minRaiseTo;
                 }
                 updateSliderDisplay();
 
-                // 绑定点击事件：发送给后端的 amount 是要“额外”补足的钱
+                // 【修复2】现在按钮可以正确触发发牌引擎了
                 document.getElementById("btn-action-fold").onclick = () => send({type:'ACTION', name: myName, action:'FOLD'});
                 document.getElementById("btn-action-call").onclick = () => send({type:'ACTION', name: myName, action:'CALL'});
                 document.getElementById("btn-action-raise").onclick = () => {
                     const raiseTo = parseInt(slider.value);
-                    const extraAmount = raiseTo - currentBet; // 这里只传额外的差价
+                    const extraAmount = raiseTo - currentBet;
                     send({type:'ACTION', name: myName, action:'RAISE', amount: extraAmount});
                 };
+                
+                // 启用按钮
+                actBtns.forEach(id => document.getElementById(id).disabled = false);
             } else {
-                // 没轮到你，显示安静的等待提示
                 waitingTip.classList.remove("hidden");
                 const currentActor = playersArray[state.game.turnIndex];
                 if(currentActor) {
                     const actorName = currentActor.name.split('|')[1] || currentActor.name;
                     waitingTip.innerText = `等待 ${actorName} 行动...`;
                 }
+                // 禁用按钮防误触
+                actBtns.forEach(id => document.getElementById(id).disabled = true);
             }
         }
     }
