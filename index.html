@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CB POKER - 职业赛场</title>
+    <title>CB POKER - Live Table</title>
     <style>
         :root { 
             --bg-dark: #242b35; --table-inner: #248ceb; --panel-bg: #11151a; 
@@ -32,10 +32,10 @@
         .setting-input { width: 100px; padding: 8px 12px; border-radius: 6px; background: #1a2028; border: 1px solid #444; color: white; font-size: 14px; font-weight: bold; outline: none; text-align: right; transition: border-color 0.2s; }
         .setting-input:focus { border-color: var(--gold); background: #222; }
 
-        /* === 镜头避让容器 === */
+        /* === 牌桌容器 === */
         #table-container { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
-
         .poker-table { width: 80vw; height: 50vh; max-width: 1000px; max-height: 550px; background: radial-gradient(circle, #349feb 0%, var(--table-inner) 100%); border: 20px solid #1c232c; border-radius: 250px; box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3); position: relative; }
+        
         .pot-display-container { position: absolute; top: 25%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 215, 0, 0.3); padding: 8px 25px; border-radius: 30px; text-align: center; z-index: 5;}
         .pot-label { font-size: 11px; color: #aaa; display: block; }
         .pot-value { font-size: 22px; font-weight: 900; color: var(--gold); }
@@ -45,6 +45,11 @@
         .invite-pill { background: rgba(17, 21, 26, 0.95); padding: 20px 40px; border-radius: 50px; text-align: center; border: 1px solid #333; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s; }
         .invite-pill:hover { background: #1a2028; transform: scale(1.02); }
 
+        /* 结算横幅 */
+        .winner-banner { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.85); border: 2px solid var(--gold); color: white; padding: 15px 30px; border-radius: 12px; font-size: 18px; font-weight: bold; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 200; white-space: nowrap; animation: popIn 0.5s ease;}
+        @keyframes popIn { 0% { transform: translate(-50%, -40%) scale(0.8); opacity: 0;} 100% { transform: translate(-50%, -50%) scale(1); opacity: 1;} }
+
+        /* 扑克牌与玩家座位 */
         .playing-card { background: white; color: black; width: 42px; height: 60px; border-radius: 5px; font-weight: bold; font-size: 18px; display: flex; justify-content: center; align-items: center; box-shadow: -1px 2px 5px rgba(0,0,0,0.4); border: 1px solid #ccc; }
         .playing-card.red { color: #d32f2f; }
         .playing-card.back { background: #1976d2; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,.1) 5px, rgba(255,255,255,.1) 10px); color: transparent;}
@@ -82,12 +87,7 @@
         #btn-take-seat:hover { transform: translateX(-50%) scale(1.05); }
 
         /* === 终极操作台 === */
-        .action-console {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(17, 21, 26, 0.95); border: 1px solid #333; border-radius: 16px;
-            padding: 20px; width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            display: flex; flex-direction: column; gap: 15px; z-index: 100;
-        }
+        .action-console { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(17, 21, 26, 0.95); border: 1px solid #333; border-radius: 16px; padding: 20px; width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 15px; z-index: 100; }
         .turn-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #2ecc71; color: black; font-weight: 900; font-size: 13px; padding: 4px 15px; border-radius: 20px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
         .raise-control-area { display: flex; flex-direction: column; gap: 12px; background: #1a2028; padding: 15px; border-radius: 12px; border: 1px solid #2a3441; }
         .raise-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #8ca0b3; font-weight: bold; }
@@ -119,7 +119,6 @@
         <div class="menu-card">
             <h1 class="logo-title">POKERCHILL</h1>
             <button class="btn-main btn-gold" onclick="navTo('view-settings')">New Game</button>
-            <button class="btn-main btn-dark" onclick="alert('即将推出：AI 练习模式')">Practice Offline</button>
             <div class="input-group">
                 <input type="text" id="join-code" class="input-code" placeholder="GAME CODE">
                 <button class="btn-join" onclick="joinByCode()">Enter</button>
@@ -129,14 +128,9 @@
 
     <div id="view-settings" class="view-screen hidden">
         <div class="menu-card" style="width: 380px;">
-            <div class="settings-header">
-                <span onclick="navTo('view-home')">⟵ Back</span>
-                <span style="color:var(--gold);" onclick="startGameFlow()">Continue ⟶</span>
-            </div>
+            <div class="settings-header"><span onclick="navTo('view-home')">⟵ Back</span><span style="color:var(--gold);" onclick="startGameFlow()">Continue ⟶</span></div>
             <h2 style="margin-top:0; color:white; letter-spacing: 1px;">CASH GAME</h2>
-            <div class="setting-item"><span class="setting-label">Buy-in (初始资金)</span><input type="number" id="set-buyin" class="setting-input" value="10000"></div>
-            <div class="setting-item"><span class="setting-label">Small Blind (小盲下注)</span><input type="number" id="set-sb" class="setting-input" value="50" step="any"></div>
-            <div class="setting-item"><span class="setting-label">Timer / Seconds (行动时间)</span><input type="number" id="set-timer" class="setting-input" value="30"></div>
+            <div style="color:#aaa; font-size:14px; margin-bottom: 20px;">默认规则: 每人 $1000 | 盲注 10/20</div>
             <div class="setting-item"><span class="setting-label">Allow Rebuys (允许重购)</span><input type="checkbox" checked style="width:18px; height:18px; cursor:pointer;"></div>
         </div>
     </div>
@@ -168,6 +162,8 @@
                     </div>
                 </div>
 
+                <div id="winner-banner" class="winner-banner hidden"></div>
+
                 <div id="players-layer"></div>
             </div>
         </div>
@@ -175,8 +171,8 @@
         <button id="btn-take-seat" class="hidden" onclick="openSitModal()">🪑 入座参与 (Take a Seat)</button>
 
         <div class="host-panel hidden" id="host-panel">
-            <div style="margin-bottom: 8px; opacity: 0.8;">规则: $<span id="info-buyin">0</span> | 盲注 <span id="info-blinds">0/0</span></div>
-            <button onclick="send({type:'START_GAME'})" id="btn-start">开始发牌</button>
+            <div style="margin-bottom: 8px; opacity: 0.8;">房间控制</div>
+            <button onclick="send({type:'START_GAME'})" id="btn-start">开始新的一局</button>
         </div>
 
         <div id="waiting-tip" class="waiting-tip hidden">等待对手行动...</div>
@@ -197,18 +193,9 @@
                 </div>
             </div>
             <div class="main-action-row">
-                <button class="action-btn btn-fold" id="btn-action-fold">
-                    <span class="btn-title">FOLD</span>
-                    <span class="btn-sub">弃牌</span>
-                </button>
-                <button class="action-btn btn-call" id="btn-action-call">
-                    <span class="btn-title" id="btn-call-title">CALL</span>
-                    <span class="btn-sub" id="btn-call-sub">$0</span>
-                </button>
-                <button class="action-btn btn-raise" id="btn-action-raise">
-                    <span class="btn-title">RAISE</span>
-                    <span class="btn-sub" id="btn-raise-sub">$0</span>
-                </button>
+                <button class="action-btn btn-fold" id="btn-action-fold"><span class="btn-title">FOLD</span><span class="btn-sub">弃牌</span></button>
+                <button class="action-btn btn-call" id="btn-action-call"><span class="btn-title" id="btn-call-title">CALL</span><span class="btn-sub" id="btn-call-sub">$0</span></button>
+                <button class="action-btn btn-raise" id="btn-action-raise"><span class="btn-title">RAISE</span><span class="btn-sub" id="btn-raise-sub">$0</span></button>
             </div>
         </div>
     </div>
@@ -233,10 +220,7 @@
     function updateSliderDisplay() {
         displayAmount.innerText = "$" + slider.value;
         btnRaiseSub.innerText = "$" + slider.value;
-        if(parseInt(slider.value) >= parseInt(slider.max)) {
-            displayAmount.innerText = "ALL-IN";
-            btnRaiseSub.innerText = "ALL-IN";
-        }
+        if(parseInt(slider.value) >= parseInt(slider.max)) { displayAmount.innerText = "ALL-IN"; btnRaiseSub.innerText = "ALL-IN"; }
     }
 
     function quickBet(type) {
@@ -259,22 +243,14 @@
         updateSliderDisplay();
     }
 
-    window.onload = () => {
-        const roomCode = new URLSearchParams(window.location.search).get('room');
-        if (roomCode) document.getElementById('join-code').value = roomCode;
-    };
+    window.onload = () => { const roomCode = new URLSearchParams(window.location.search).get('room'); if (roomCode) document.getElementById('join-code').value = roomCode; };
 
-    function navTo(targetViewId) {
-        document.querySelectorAll('.view-screen').forEach(el => el.classList.add('hidden'));
-        document.getElementById(targetViewId).classList.remove('hidden');
-    }
+    function navTo(targetViewId) { document.querySelectorAll('.view-screen').forEach(el => el.classList.add('hidden')); document.getElementById(targetViewId).classList.remove('hidden'); }
 
     function copyInviteLink() {
         navigator.clipboard.writeText(window.location.href).then(() => {
-            const el = document.getElementById('display-room-url');
-            const originalText = el.innerText;
-            el.innerText = "✓ Copied to clipboard!";
-            el.style.color = "var(--active-green)";
+            const el = document.getElementById('display-room-url'); const originalText = el.innerText;
+            el.innerText = "✓ Copied to clipboard!"; el.style.color = "var(--active-green)";
             setTimeout(() => { el.innerText = originalText; el.style.color = "#8ca0b3"; }, 2000);
         });
     }
@@ -286,37 +262,22 @@
     function confirmSit() {
         const nameInput = document.getElementById('sit-name').value.trim();
         if(!nameInput) return alert("请输入昵称！(注意：不要和别人重名)");
-        myName = selectedAvatar + "|" + nameInput; 
-        isWaitingForServer = true; 
-        
-        const btn = document.getElementById('btn-confirm-sit');
-        btn.innerText = "正在同步云端..."; btn.disabled = true;
+        myName = selectedAvatar + "|" + nameInput; isWaitingForServer = true; 
+        const btn = document.getElementById('btn-confirm-sit'); btn.innerText = "正在同步云端..."; btn.disabled = true;
 
         if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: "JOIN", name: myName })); } 
         else { connectWebSocket(); setTimeout(() => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "JOIN", name: myName })); }, 1000); }
 
-        setTimeout(() => {
-            if (isWaitingForServer) {
-                alert("云端无响应。请换个名字重试！");
-                btn.innerText = "确定入座"; btn.disabled = false; isWaitingForServer = false;
-            }
-        }, 5000);
+        setTimeout(() => { if (isWaitingForServer) { alert("云端无响应。请换个名字重试！"); btn.innerText = "确定入座"; btn.disabled = false; isWaitingForServer = false; } }, 5000);
     }
 
     async function startGameFlow() {
-        const buyInVal = parseFloat(document.getElementById('set-buyin').value) || 10000;
-        const sb = parseFloat(document.getElementById('set-sb').value) || 50;
-        const settings = { initialChips: buyInVal, smallBlind: sb, bigBlind: sb * 2, timerSeconds: 30, host: "Host" };
-
         try {
-            const res = await fetch(`${BACKEND_URL}/create-room`, { method: "POST", body: JSON.stringify(settings) });
+            const res = await fetch(`${BACKEND_URL}/create-room`, { method: "POST" });
             const data = await res.json();
             currentRoomId = data.roomId; 
-            
             window.history.pushState({}, "", `?room=${currentRoomId}`);
             document.getElementById('display-room-url').innerText = window.location.href;
-            document.getElementById('info-buyin').innerText = settings.initialChips;
-            document.getElementById('info-blinds').innerText = `${settings.smallBlind}/${settings.bigBlind}`;
             
             connectWebSocket(); navTo('view-game'); document.getElementById('host-panel').classList.remove('hidden');
             openSitModal(); renderEngine({ status: "WAITING", game: { pot: 0, status: "WAITING", board: [] }, players: [] });
@@ -328,7 +289,6 @@
         if (!currentRoomId) return alert("请输入房间码");
         window.history.pushState({}, "", `?room=${currentRoomId}`);
         document.getElementById('display-room-url').innerText = window.location.href;
-        
         connectWebSocket(); navTo('view-game'); document.getElementById('host-panel').classList.add('hidden'); 
         renderEngine({ status: "WAITING", game: { pot: 0, status: "WAITING", board: [] }, players: [] });
     }
@@ -337,25 +297,14 @@
         const wsUrl = BACKEND_URL.replace("https://", "wss://") + `?roomId=${currentRoomId}`;
         ws = new WebSocket(wsUrl);
         ws.onopen = () => ws.send(JSON.stringify({ type: "PING" }));
-        ws.onmessage = (e) => {
-            try { latestGameState = JSON.parse(e.data); renderEngine(latestGameState); } 
-            catch (err) { console.error("解析失败", err); }
-        };
+        ws.onmessage = (e) => { try { latestGameState = JSON.parse(e.data); renderEngine(latestGameState); } catch (err) {} };
     }
 
-    // 【添加断线防卫】：如果网络断开，给用户提示，而不是默默吞掉点击
-    function send(obj) { 
-        if(ws && ws.readyState === 1) {
-            ws.send(JSON.stringify(obj)); 
-        } else {
-            alert("与服务器通讯中断，请刷新页面重新加入！");
-        }
-    }
+    function send(obj) { if(ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); else alert("网络断开，请刷新重连！"); }
 
     function getSeatMap(roomId) {
         let seed = 0; if (roomId) for(let i=0; i<roomId.length; i++) seed += roomId.charCodeAt(i);
-        if (seed === 0) seed = 123;
-        let seats = [0,1,2,3,4,5,6,7,8,9];
+        if (seed === 0) seed = 123; let seats = [0,1,2,3,4,5,6,7,8,9];
         for(let i=0; i<10; i++) { let j = (seed + i * 17) % 10; if (isNaN(j) || j < 0) j = 0; let temp = seats[i]; seats[i] = seats[j]; seats[j] = temp; }
         return seats;
     }
@@ -368,30 +317,39 @@
             return `<div class="playing-card ${c.includes('♥') || c.includes('♦') ? 'red' : ''}">${c}</div>`;
         }).join("");
 
+        // 摊牌结算逻辑
+        const banner = document.getElementById("winner-banner");
+        if (state.game.status === "SHOWDOWN") {
+            banner.innerText = state.game.winMessage;
+            banner.classList.remove("hidden");
+            if(document.getElementById("host-panel") && document.getElementById("host-panel").classList.contains("hidden") === false) {
+                document.getElementById("btn-start").classList.remove("hidden");
+            }
+        } else {
+            banner.classList.add("hidden");
+        }
+
         const pill = document.getElementById("invite-pill-container");
         if(state.game.status !== "WAITING") {
             pill.classList.add("hidden"); 
-            if(document.getElementById("btn-start")) document.getElementById("btn-start").classList.add("hidden");
+            if(state.game.status !== "SHOWDOWN" && document.getElementById("btn-start")) document.getElementById("btn-start").classList.add("hidden");
         } else {
             pill.classList.remove("hidden");
+            if(document.getElementById("btn-start")) document.getElementById("btn-start").classList.remove("hidden");
         }
 
         let playersArray = state.players || [];
         let amISeated = playersArray.some(p => p && p.name === myName && myName !== "");
         
         if (isWaitingForServer && amISeated) {
-            isWaitingForServer = false; 
-            document.getElementById('sit-modal').classList.add('hidden');
-            document.getElementById('btn-confirm-sit').innerText = "确定入座";
-            document.getElementById('btn-confirm-sit').disabled = false;
+            isWaitingForServer = false; document.getElementById('sit-modal').classList.add('hidden');
+            document.getElementById('btn-confirm-sit').innerText = "确定入座"; document.getElementById('btn-confirm-sit').disabled = false;
         }
 
         if (amISeated) document.getElementById('btn-take-seat').classList.add('hidden'); 
         else if (myName === "" || !isWaitingForServer) document.getElementById('btn-take-seat').classList.remove('hidden'); 
 
-        const layer = document.getElementById("players-layer");
-        layer.innerHTML = "";
-        
+        const layer = document.getElementById("players-layer"); layer.innerHTML = "";
         let isMyTurn = false;
         const visualMap = getSeatMap(currentRoomId);
         let displaySeats = new Array(MAX_SEATS).fill(null);
@@ -410,7 +368,7 @@
             let betClass = ""; if (seatClass.includes("lft")) betClass = "bet-right"; if (seatClass.includes("rgt")) betClass = "bet-left";
 
             if (p) {
-                const isActive = (state.game.status !== "WAITING" && p.realIndex === state.game.turnIndex);
+                const isActive = (state.game.status !== "WAITING" && state.game.status !== "SHOWDOWN" && p.realIndex === state.game.turnIndex);
                 if (isActive && p.name === myName) isMyTurn = true;
 
                 let displayAvatar = '😎'; let displayName = p.name;
@@ -419,7 +377,6 @@
                 let cardsHtml = "";
                 if (p.hand && p.hand.length > 0) {
                     cardsHtml = p.hand.map((c, idx) => {
-                        // 【绝对屏蔽：除了你自己的牌，或者到了摊牌时刻，其余强制显示蓝背底牌】
                         const isHidden = (p.name !== myName && state.game.status !== "SHOWDOWN") || c === "??";
                         const isRed = !isHidden && (c.includes('♥') || c.includes('♦'));
                         const displayC = isHidden ? '' : c;
@@ -430,7 +387,7 @@
                 layer.innerHTML += `
                     <div class="player-seat ${seatClass} ${posClass} ${betClass}">
                         <div class="hole-cards">${p.folded ? '' : cardsHtml}</div>
-                        <div class="player-card ${isActive && !p.folded ? 'active' : ''}" style="${p.folded ? 'opacity: 0.5;' : ''}">
+                        <div class="player-card ${isActive && !p.folded && !p.isOut ? 'active' : ''}" style="${(p.folded||p.isOut) ? 'opacity: 0.4; filter: grayscale(1);' : ''}">
                             <div class="player-avatar"><span>${displayAvatar}</span></div>
                             <div class="player-name">${displayName}</div>
                             <div class="player-chips">$${p.chips}</div>
@@ -438,6 +395,7 @@
                         ${(p.betThisRound > 0 && state.game.status !== "WAITING") ? `<div class="bet-indicator">⚪ $${p.betThisRound}</div>` : ''}
                         ${isActive && !p.folded ? `<div class="bet-indicator" style="background:var(--active-green); color:black;">思考中...</div>` : ''}
                         ${p.folded ? `<div class="bet-indicator" style="background:var(--btn-fold); color:white;">已弃牌</div>` : ''}
+                        ${p.chips === 0 && !p.isOut && !p.folded && state.game.status !== "WAITING" ? `<div class="bet-indicator" style="background:#d95379; color:white;">ALL-IN</div>` : ''}
                     </div>
                 `;
             } else {
@@ -452,56 +410,46 @@
         const btnCallSub = document.getElementById("btn-call-sub");
         const actBtns = ["btn-action-fold", "btn-action-call", "btn-action-raise"];
         
-        if (state.game.status !== "WAITING" && amISeated) {
+        actionConsole.classList.add("hidden"); waitingTip.classList.add("hidden"); tableContainer.style.transform = "translateY(0) scale(1)";
+
+        if (state.game.status !== "WAITING" && state.game.status !== "SHOWDOWN" && amISeated) {
+            const myData = playersArray.find(p => p && p.name === myName);
+            if (!myData || myData.chips === 0 || myData.folded) return; // All-in 玩家不用操作
+
             if (isMyTurn) {
                 actionConsole.classList.remove("hidden");
-                waitingTip.classList.add("hidden");
-                // 【镜头避让系统：将牌桌整体抬高并微缩，给操作台让路】
                 tableContainer.style.transform = "translateY(-60px) scale(0.95)";
-                
-                const myData = playersArray.find(p => p && p.name === myName);
-                if (!myData) return;
                 
                 const currentBet = Number(state.game.currentBet) || 0;
                 const myBet = Number(myData.betThisRound) || 0;
                 const myChips = Number(myData.chips) || 0;
-                const bigBlind = Number(state.game.bigBlind) || 100;
+                const bigBlind = Number(state.game.bigBlind) || 20;
                 
                 const callAmount = currentBet - myBet;
                 if (callAmount <= 0) {
-                    btnCallTitle.innerText = "CHECK";
-                    btnCallSub.innerText = "过牌 (免费)";
+                    btnCallTitle.innerText = "CHECK"; btnCallSub.innerText = "过牌 (免费)";
                     document.getElementById("btn-action-call").style.background = "linear-gradient(145deg, #2ecc71, #219653)";
                 } else {
-                    btnCallTitle.innerText = "CALL";
-                    btnCallSub.innerText = "$" + callAmount;
+                    btnCallTitle.innerText = "CALL"; btnCallSub.innerText = "$" + callAmount;
                     document.getElementById("btn-action-call").style.background = "linear-gradient(145deg, #1976d2, #115293)";
                 }
 
                 const minRaiseTo = currentBet + bigBlind;
-                slider.min = minRaiseTo;
-                slider.max = myChips + myBet; 
-                if (parseInt(slider.value) < minRaiseTo || parseInt(slider.value) > slider.max) {
-                    slider.value = minRaiseTo;
-                }
+                slider.min = minRaiseTo; slider.max = myChips + myBet; 
+                if (parseInt(slider.value) < minRaiseTo || parseInt(slider.value) > slider.max) slider.value = minRaiseTo;
                 updateSliderDisplay();
 
-                // 【绑定正确的指令发送逻辑】
                 document.getElementById("btn-action-fold").onclick = () => send({type:'ACTION', name: myName, action:'FOLD'});
                 document.getElementById("btn-action-call").onclick = () => send({type:'ACTION', name: myName, action:'CALL'});
                 document.getElementById("btn-action-raise").onclick = () => {
                     const raiseTo = parseInt(slider.value);
-                    const extraAmount = raiseTo - currentBet;
+                    const extraAmount = raiseTo - currentBet; // 只发送额外差价
                     send({type:'ACTION', name: myName, action:'RAISE', amount: extraAmount});
                 };
                 
                 actBtns.forEach(id => document.getElementById(id).disabled = false);
             } else {
-                // 回合结束，关闭操作台，桌面还原
-                actionConsole.classList.add("hidden");
                 waitingTip.classList.remove("hidden");
-                tableContainer.style.transform = "translateY(0) scale(1)";
-                
                 const currentActor = playersArray[state.game.turnIndex];
                 if(currentActor) {
                     const actorName = currentActor.name.split('|')[1] || currentActor.name;
@@ -509,9 +457,6 @@
                 }
                 actBtns.forEach(id => document.getElementById(id).disabled = true);
             }
-        } else {
-            actionConsole.classList.add("hidden");
-            tableContainer.style.transform = "translateY(0) scale(1)";
         }
     }
 </script>
