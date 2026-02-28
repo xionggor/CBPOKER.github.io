@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CB POKER - 职业赛场</title>
     <style>
-        /* === 核心颜色与基础设定 === */
         :root { 
             --bg-dark: #242b35; --table-inner: #248ceb; --panel-bg: #11151a; 
             --gold: #ffd700; --active-green: #2ecc71; 
@@ -15,7 +14,6 @@
         .view-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; }
         .hidden { display: none !important; opacity: 0; pointer-events: none; }
 
-        /* === 菜单与设置 UI === */
         .menu-card { background: var(--panel-bg); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8); border: 1px solid #333; width: 320px; position: relative;}
         .logo-title { color: var(--gold); font-size: 32px; font-weight: 900; letter-spacing: 2px; margin-bottom: 30px; margin-top: 0;}
         .btn-main { width: 100%; padding: 16px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 15px; transition: 0.2s; }
@@ -34,7 +32,9 @@
         .setting-input { width: 100px; padding: 8px 12px; border-radius: 6px; background: #1a2028; border: 1px solid #444; color: white; font-size: 14px; font-weight: bold; outline: none; text-align: right; transition: border-color 0.2s; }
         .setting-input:focus { border-color: var(--gold); background: #222; }
 
-        /* === 牌桌 UI === */
+        /* === 镜头避让容器 === */
+        #table-container { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+
         .poker-table { width: 80vw; height: 50vh; max-width: 1000px; max-height: 550px; background: radial-gradient(circle, #349feb 0%, var(--table-inner) 100%); border: 20px solid #1c232c; border-radius: 250px; box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3); position: relative; }
         .pot-display-container { position: absolute; top: 25%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 215, 0, 0.3); padding: 8px 25px; border-radius: 30px; text-align: center; z-index: 5;}
         .pot-label { font-size: 11px; color: #aaa; display: block; }
@@ -45,7 +45,6 @@
         .invite-pill { background: rgba(17, 21, 26, 0.95); padding: 20px 40px; border-radius: 50px; text-align: center; border: 1px solid #333; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s; }
         .invite-pill:hover { background: #1a2028; transform: scale(1.02); }
 
-        /* === 扑克牌与玩家座位 === */
         .playing-card { background: white; color: black; width: 42px; height: 60px; border-radius: 5px; font-weight: bold; font-size: 18px; display: flex; justify-content: center; align-items: center; box-shadow: -1px 2px 5px rgba(0,0,0,0.4); border: 1px solid #ccc; }
         .playing-card.red { color: #d32f2f; }
         .playing-card.back { background: #1976d2; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,.1) 5px, rgba(255,255,255,.1) 10px); color: transparent;}
@@ -70,7 +69,6 @@
         .bet-right .bet-indicator { top: 50%; left: calc(100% + 15px); bottom: auto; transform: translateY(-50%); }
         .bet-left .bet-indicator { top: 50%; right: calc(100% + 15px); left: auto; bottom: auto; transform: translateY(-50%); }
 
-        /* 10 人对称坐标 */
         .s-btm-c { top: 102%; left: 50%; } .s-lft-b { top: 75%; left: 6%; } .s-lft-t { top: 25%; left: 6%; } .s-top-l { top: -2%; left: 22%; } .s-top-c { top: -2%; left: 50%; }
         .s-top-r { top: -2%; left: 78%; } .s-rgt-t { top: 25%; left: 94%; } .s-rgt-b { top: 75%; left: 94%; } .s-btm-r { top: 102%; left: 78%; } .s-btm-l { top: 102%; left: 22%; }
 
@@ -83,18 +81,14 @@
         #btn-take-seat { position:absolute; bottom:120px; left:50%; transform:translateX(-50%); padding: 15px 40px; border-radius: 50px; background:var(--gold); color:black; font-weight:bold; font-size:18px; border:none; cursor:pointer; z-index:30; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transition: 0.2s;}
         #btn-take-seat:hover { transform: translateX(-50%) scale(1.05); }
 
-        /* === 终极交互：底部居中操作台 === */
+        /* === 终极操作台 === */
         .action-console {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(17, 21, 26, 0.95); border: 1px solid #333; border-radius: 16px;
             padding: 20px; width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             display: flex; flex-direction: column; gap: 15px; z-index: 100;
         }
-        .turn-badge {
-            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-            background: #2ecc71; color: black; font-weight: 900; font-size: 13px;
-            padding: 4px 15px; border-radius: 20px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4);
-        }
+        .turn-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #2ecc71; color: black; font-weight: 900; font-size: 13px; padding: 4px 15px; border-radius: 20px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
         .raise-control-area { display: flex; flex-direction: column; gap: 12px; background: #1a2028; padding: 15px; border-radius: 12px; border: 1px solid #2a3441; }
         .raise-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #8ca0b3; font-weight: bold; }
         .raise-amount-display { font-size: 24px; color: var(--gold); font-weight: 900; letter-spacing: 1px; }
@@ -108,7 +102,7 @@
         .main-action-row { display: flex; gap: 10px; height: 65px; }
         .action-btn { flex: 1; border: none; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.1s; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
         .action-btn:active { transform: scale(0.96); }
-        .action-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; }
+        .action-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(1); }
         .btn-title { font-size: 18px; font-weight: 900; letter-spacing: 1px; color: white; }
         .btn-sub { font-size: 13px; font-weight: bold; opacity: 0.9; margin-top: 2px; }
         .btn-fold { background: linear-gradient(145deg, #d95379, #b03a5b); }
@@ -161,18 +155,21 @@
 
     <div id="view-game" class="view-screen hidden">
         <div class="top-left-logo" style="color:var(--gold)">POKERCHILL</div>
-        <div class="poker-table">
-            <div class="pot-display-container"><span class="pot-label">TOTAL POT</span><span class="pot-value" id="ui-pot">$0</span></div>
-            <div class="community-cards-area" id="ui-board"></div>
-            
-            <div id="invite-pill-container" style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:100; display: flex; flex-direction: column; align-items: center;">
-                <div class="invite-pill" onclick="copyInviteLink()">
-                    <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 5px; opacity: 0.9;">Share this with your friends (click to copy):</div>
-                    <div id="display-room-url" style="color: #8ca0b3; font-style: italic; font-size: 13px; letter-spacing: 0.5px;">Generating link...</div>
+        
+        <div id="table-container">
+            <div class="poker-table">
+                <div class="pot-display-container"><span class="pot-label">TOTAL POT</span><span class="pot-value" id="ui-pot">$0</span></div>
+                <div class="community-cards-area" id="ui-board"></div>
+                
+                <div id="invite-pill-container" style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:100; display: flex; flex-direction: column; align-items: center;">
+                    <div class="invite-pill" onclick="copyInviteLink()">
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 5px; opacity: 0.9;">Share this with your friends (click to copy):</div>
+                        <div id="display-room-url" style="color: #8ca0b3; font-style: italic; font-size: 13px; letter-spacing: 0.5px;">Generating link...</div>
+                    </div>
                 </div>
-            </div>
 
-            <div id="players-layer"></div>
+                <div id="players-layer"></div>
+            </div>
         </div>
 
         <button id="btn-take-seat" class="hidden" onclick="openSitModal()">🪑 入座参与 (Take a Seat)</button>
@@ -283,9 +280,7 @@
     }
 
     function openSitModal() { document.getElementById('sit-modal').classList.remove('hidden'); renderAvatarGrid(); }
-    function renderAvatarGrid() {
-        document.getElementById('avatar-grid').innerHTML = AVATAR_LIST.map(a => `<div class="avatar-opt ${a===selectedAvatar?'selected':''}" onclick="selectAvatar('${a}')">${a}</div>`).join("");
-    }
+    function renderAvatarGrid() { document.getElementById('avatar-grid').innerHTML = AVATAR_LIST.map(a => `<div class="avatar-opt ${a===selectedAvatar?'selected':''}" onclick="selectAvatar('${a}')">${a}</div>`).join(""); }
     function selectAvatar(a) { selectedAvatar = a; renderAvatarGrid(); }
 
     function confirmSit() {
@@ -297,12 +292,8 @@
         const btn = document.getElementById('btn-confirm-sit');
         btn.innerText = "正在同步云端..."; btn.disabled = true;
 
-        if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "JOIN", name: myName }));
-        } else {
-            connectWebSocket();
-            setTimeout(() => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "JOIN", name: myName })); }, 1000);
-        }
+        if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: "JOIN", name: myName })); } 
+        else { connectWebSocket(); setTimeout(() => { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "JOIN", name: myName })); }, 1000); }
 
         setTimeout(() => {
             if (isWaitingForServer) {
@@ -352,7 +343,14 @@
         };
     }
 
-    function send(obj) { if(ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+    // 【添加断线防卫】：如果网络断开，给用户提示，而不是默默吞掉点击
+    function send(obj) { 
+        if(ws && ws.readyState === 1) {
+            ws.send(JSON.stringify(obj)); 
+        } else {
+            alert("与服务器通讯中断，请刷新页面重新加入！");
+        }
+    }
 
     function getSeatMap(roomId) {
         let seed = 0; if (roomId) for(let i=0; i<roomId.length; i++) seed += roomId.charCodeAt(i);
@@ -362,7 +360,6 @@
         return seats;
     }
 
-    // --- 安全渲染引擎 ---
     function renderEngine(state) {
         if (!state || !state.game) return;
 
@@ -422,7 +419,7 @@
                 let cardsHtml = "";
                 if (p.hand && p.hand.length > 0) {
                     cardsHtml = p.hand.map((c, idx) => {
-                        // 【修复1】如果是别人的牌，且当前不是最终摊牌阶段，强制显示背面！
+                        // 【绝对屏蔽：除了你自己的牌，或者到了摊牌时刻，其余强制显示蓝背底牌】
                         const isHidden = (p.name !== myName && state.game.status !== "SHOWDOWN") || c === "??";
                         const isRed = !isHidden && (c.includes('♥') || c.includes('♦'));
                         const displayC = isHidden ? '' : c;
@@ -448,21 +445,19 @@
             }
         }
 
-        // --- 终极互动操作台逻辑 ---
         const actionConsole = document.getElementById("action-console");
         const waitingTip = document.getElementById("waiting-tip");
+        const tableContainer = document.getElementById("table-container");
         const btnCallTitle = document.getElementById("btn-call-title");
         const btnCallSub = document.getElementById("btn-call-sub");
-        
-        // 【修复2】统一获取新版操作台的按钮 ID
         const actBtns = ["btn-action-fold", "btn-action-call", "btn-action-raise"];
         
-        actionConsole.classList.add("hidden");
-        waitingTip.classList.add("hidden");
-
         if (state.game.status !== "WAITING" && amISeated) {
             if (isMyTurn) {
                 actionConsole.classList.remove("hidden");
+                waitingTip.classList.add("hidden");
+                // 【镜头避让系统：将牌桌整体抬高并微缩，给操作台让路】
+                tableContainer.style.transform = "translateY(-60px) scale(0.95)";
                 
                 const myData = playersArray.find(p => p && p.name === myName);
                 if (!myData) return;
@@ -486,13 +481,12 @@
                 const minRaiseTo = currentBet + bigBlind;
                 slider.min = minRaiseTo;
                 slider.max = myChips + myBet; 
-                
                 if (parseInt(slider.value) < minRaiseTo || parseInt(slider.value) > slider.max) {
                     slider.value = minRaiseTo;
                 }
                 updateSliderDisplay();
 
-                // 【修复2】现在按钮可以正确触发发牌引擎了
+                // 【绑定正确的指令发送逻辑】
                 document.getElementById("btn-action-fold").onclick = () => send({type:'ACTION', name: myName, action:'FOLD'});
                 document.getElementById("btn-action-call").onclick = () => send({type:'ACTION', name: myName, action:'CALL'});
                 document.getElementById("btn-action-raise").onclick = () => {
@@ -501,18 +495,23 @@
                     send({type:'ACTION', name: myName, action:'RAISE', amount: extraAmount});
                 };
                 
-                // 启用按钮
                 actBtns.forEach(id => document.getElementById(id).disabled = false);
             } else {
+                // 回合结束，关闭操作台，桌面还原
+                actionConsole.classList.add("hidden");
                 waitingTip.classList.remove("hidden");
+                tableContainer.style.transform = "translateY(0) scale(1)";
+                
                 const currentActor = playersArray[state.game.turnIndex];
                 if(currentActor) {
                     const actorName = currentActor.name.split('|')[1] || currentActor.name;
                     waitingTip.innerText = `等待 ${actorName} 行动...`;
                 }
-                // 禁用按钮防误触
                 actBtns.forEach(id => document.getElementById(id).disabled = true);
             }
+        } else {
+            actionConsole.classList.add("hidden");
+            tableContainer.style.transform = "translateY(0) scale(1)";
         }
     }
 </script>
