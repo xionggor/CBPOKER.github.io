@@ -8,6 +8,7 @@
         :root { 
             --bg-dark: #242b35; --table-inner: #248ceb; --panel-bg: #11151a; 
             --gold: #ffd700; --active-green: #2ecc71; 
+            --btn-fold: #d95379; --btn-call: #1976d2; --btn-raise: #0d47a1;
         }
         body { margin: 0; padding: 0; background-color: var(--bg-dark); color: white; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
         .view-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; }
@@ -17,6 +18,7 @@
         .logo-title { color: var(--gold); font-size: 32px; font-weight: 900; letter-spacing: 2px; margin-bottom: 30px; margin-top: 0;}
         .btn-main { width: 100%; padding: 16px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 15px; transition: 0.2s; }
         .btn-gold { background: var(--gold); color: black; } .btn-gold:hover { transform: scale(1.03); background: #e6c200; }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-dark { background: #2a3441; color: white; border: 1px solid #444; } .btn-dark:hover { background: #354252; }
         .input-group { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #333; }
         .input-code { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 2px; outline: none; text-transform: uppercase;}
@@ -53,31 +55,27 @@
         .playing-card.red { color: #d32f2f; }
         .playing-card.back { background: #1976d2; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,.1) 5px, rgba(255,255,255,.1) 10px); color: transparent;}
         
-        /* 【发牌时间轴动画】 */
         @keyframes dealHoleCard { 0% { transform: translate(calc(50vw - 100%), calc(-50vh + 100%)) scale(0) rotate(180deg); opacity: 0; } 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; } }
         @keyframes dealBoardCard { 0% { transform: translate(0, -100px) scale(0) rotate(180deg); opacity: 0; } 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; } }
 
         .player-seat { position: absolute; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -50%); transition: all 0.3s ease;}
         
-        /* 【核心改动：卡片加宽到 110px，内部元素模块化】 */
+        .kick-btn { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: white; border: 1px solid #111; border-radius: 5px; font-size: 12px; padding: 4px 12px; cursor: pointer; z-index: 30; box-shadow: 0 4px 10px rgba(0,0,0,0.8); display: none; font-weight: bold; white-space: nowrap;}
+        .kick-btn:hover { background: #ff5b4c; transform: translateX(-50%) scale(1.05);}
+        .player-seat:hover .kick-btn { display: block; }
+
         .player-card { width: 110px; min-height: 85px; background: #000; border-radius: 8px; overflow: visible; border: 2px solid transparent; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; position: relative; display: flex; flex-direction: column; justify-content: space-between;}
         .player-card.active { border-color: var(--active-green); box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);}
         .player-card.active .player-chips { background: var(--active-green); color: #000; }
         .player-card.empty-seat { background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.05); box-shadow: none; min-height: 85px; border-radius: 8px; }
         
-        /* 【核心改动：踢人居中上方悬浮】 */
-        .kick-btn { position: absolute; top: -28px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: white; border: 1px solid #111; border-radius: 5px; font-size: 12px; padding: 4px 12px; cursor: pointer; z-index: 30; box-shadow: 0 4px 10px rgba(0,0,0,0.8); display: none; font-weight: bold; white-space: nowrap;}
-        .kick-btn:hover { background: #ff5b4c; transform: translateX(-50%) scale(1.05);}
-        .player-seat:hover .kick-btn { display: block; }
-
         .player-avatar { padding-top: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2;}
         .player-avatar span { font-size: 26px; line-height: 1; }
         .player-name { font-size: 11px; color: #ddd; margin-top: auto; padding-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; z-index: 2;}
         .player-chips { background: #4b5d6d; text-align: center; font-size: 13px; font-weight: bold; padding: 5px 0; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; z-index: 2;}
         
-        /* 【核心改动：内嵌式精致状态标签，不再遮挡卡片】 */
         .status-badge-inner { font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin: 4px auto; width: fit-content; text-align: center; z-index: 2; letter-spacing: 1px; }
-        .bg-offline { background: rgba(100,100,100,0.8); color: white; }
+        .bg-offline { background: #607d8b; color: white; } /* 断线和等待下局都用这个优雅的灰蓝色 */
         .bg-fold { background: rgba(217, 83, 121, 0.9); color: white; }
         .bg-think { background: rgba(46, 204, 113, 0.9); color: black; }
         .bg-allin { background: rgba(255, 215, 0, 0.9); color: black; }
@@ -88,22 +86,15 @@
         .hole-cards { position: absolute; display: flex; z-index: 5; }
         .card-1 { margin-right: -10px; z-index: 1; } .card-2 { z-index: 2; }
         
-        /* 【核心改动：筹码方位绝对隔离避让】 */
         .bet-badge { position: absolute; background: rgba(0,0,0,0.85); padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid #777; z-index: 15; white-space: nowrap; color: var(--gold); box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
-        
-        /* 上下方：手牌放在卡片后，筹码侧置 */
         .pos-bottom .hole-cards { top: -45px; left: 50%; transform: translateX(-50%); } 
-        .pos-bottom .bet-badge { top: -35px; right: -40px; } /* 筹码放右侧 */
-        
+        .pos-bottom .bet-badge { top: -35px; right: -40px; } 
         .pos-top .hole-cards { bottom: -45px; left: 50%; transform: translateX(-50%); }
         .pos-top .bet-badge { bottom: -35px; right: -40px; }
-
-        /* 左右方：手牌居中，筹码往桌心推 */
         .pos-left .hole-cards { top: -45px; left: 50%; transform: translateX(-50%); }
-        .pos-left .bet-badge { top: 50%; left: 100%; margin-left: 15px; transform: translateY(-50%); } /* 放右侧 */
-        
+        .pos-left .bet-badge { top: 50%; left: 100%; margin-left: 15px; transform: translateY(-50%); } 
         .pos-right .hole-cards { top: -45px; left: 50%; transform: translateX(-50%); }
-        .pos-right .bet-badge { top: 50%; right: 100%; margin-right: 15px; transform: translateY(-50%); } /* 放左侧 */
+        .pos-right .bet-badge { top: 50%; right: 100%; margin-right: 15px; transform: translateY(-50%); } 
 
         .s-btm-c { top: 102%; left: 50%; } .s-lft-b { top: 75%; left: 6%; } .s-lft-t { top: 25%; left: 6%; } .s-top-l { top: -2%; left: 22%; } .s-top-c { top: -2%; left: 50%; }
         .s-top-r { top: -2%; left: 78%; } .s-rgt-t { top: 25%; left: 94%; } .s-rgt-b { top: 75%; left: 94%; } .s-btm-r { top: 102%; left: 78%; } .s-btm-l { top: 102%; left: 22%; }
@@ -143,6 +134,8 @@
         .btn-call { background: linear-gradient(145deg, #1976d2, #115293); }
         .btn-raise { background: linear-gradient(145deg, #ffd700, #d4b400); }
         .btn-raise .btn-title, .btn-raise .btn-sub { color: #11151a; }
+        
+        .waiting-tip { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 30px; color: #aaa; font-size: 14px; font-weight: bold; border: 1px solid #333; z-index: 20;}
     </style>
 </head>
 <body>
@@ -248,9 +241,8 @@
     let isWaitingForServer = false;
     let latestGameState = null;
     let countdownInterval = null; 
-    let wasISeated = false; // 用于判定是否被踢
+    let wasISeated = false; 
 
-    // 【新增：发牌时间轴锁，防止每次重绘都发牌】
     let prevBoardLength = 0;
     let prevBurnLength = 0;
 
@@ -307,7 +299,7 @@
 
     function confirmSit() {
         const nameInput = document.getElementById('sit-name').value.trim();
-        if(!nameInput) return alert("请输入昵称！(注意：不要和别人重名)");
+        if(!nameInput) return alert("请输入昵称！");
         myName = selectedAvatar + "|" + nameInput; isWaitingForServer = true; 
         localStorage.setItem('poker_session_' + currentRoomId, JSON.stringify({ name: myName, avatar: selectedAvatar }));
         const btn = document.getElementById('btn-confirm-sit'); btn.innerText = "正在入座..."; btn.disabled = true;
@@ -368,12 +360,10 @@
 
         document.getElementById("ui-pot").innerText = "$" + (state.game.pot || 0);
         
-        // 【核心动画管理】重置时清空轨道锁
         if (state.game.status === "WAITING" || state.game.status === "PRE-FLOP") {
             prevBoardLength = 0; prevBurnLength = 0;
         }
 
-        // 渲染烧牌与发牌特效 (精准 Timeline)
         let burnCardsHtml = "";
         if (state.game.burnCards && state.game.burnCards.length > 0) {
             burnCardsHtml = `<div class="burn-area">` + 
@@ -386,7 +376,6 @@
         const boardCardsHtml = (state.game.board || []).map((c, i) => {
             let animDelay = "";
             if (i >= prevBoardLength) {
-                // FLOP 是三张连发，要有阶梯感 (0.3s, 0.6s, 0.9s)。TURN和RIVER是单发，直接0.3s起步。
                 let delay = 0.3;
                 if (state.game.status === "FLOP" && i >= prevBoardLength) delay = 0.3 + (i - prevBoardLength) * 0.3;
                 animDelay = `animation: dealBoardCard 0.4s ease-out backwards; animation-delay: ${delay}s;`;
@@ -396,7 +385,6 @@
         
         document.getElementById("ui-board").innerHTML = burnCardsHtml + boardCardsHtml;
         
-        // 渲染完毕后记录锁，防止每次点击操作都重播动画
         prevBoardLength = state.game.board ? state.game.board.length : 0;
         prevBurnLength = state.game.burnCards ? state.game.burnCards.length : 0;
 
@@ -436,7 +424,6 @@
         const pureMyName = myName.split('|')[1] || myName;
         let amISeated = playersArray.some(p => p && (p.name.split('|')[1] || p.name) === pureMyName);
         
-        // 【核心：强制踢回首页判断】
         if (wasISeated && !amISeated && myName !== "" && !isWaitingForServer) {
             alert("您已被房主移出房间。");
             myName = ""; localStorage.removeItem('poker_session_' + currentRoomId);
@@ -466,7 +453,6 @@
             const seatClass = SEAT_ORDER[i];
             const p = displaySeats[i]; 
             
-            // 智能避让类名
             let posClass = ""; let betClass = "";
             if (seatClass.includes("btm")) posClass = "pos-bottom";
             if (seatClass.includes("top")) posClass = "pos-top";
@@ -478,6 +464,7 @@
                 if (isActive && p.name === myName) isMyTurn = true;
                 const isOut = p.isOut === true; 
                 const isOffline = p.isOnline === false; 
+                const isWaitingNextHand = p.isWaitingNextHand === true;
 
                 let displayAvatar = '😎'; let displayName = p.name;
                 if (p.name.includes('|')) { const parts = p.name.split('|'); displayAvatar = parts[0]; displayName = parts[1]; }
@@ -492,9 +479,10 @@
                     }).join("");
                 }
 
-                // 【核心：精致小巧的内嵌状态条】
+                // 【核心修改：精准控制标签状态】
                 let badgeHtml = "";
                 if (isOffline) badgeHtml = `<div class="status-badge-inner bg-offline">已离线</div>`;
+                else if (isWaitingNextHand) badgeHtml = `<div class="status-badge-inner bg-offline" style="background:#555;">等待下局</div>`;
                 else if (p.folded && !isOut) badgeHtml = `<div class="status-badge-inner bg-fold">已弃牌</div>`;
                 else if (p.chips === 0 && !isOut && !p.folded && state.game.status !== "WAITING") badgeHtml = `<div class="status-badge-inner bg-allin">ALL-IN</div>`;
                 else if (isActive && !p.folded && !isOut) badgeHtml = `<div class="status-badge-inner bg-think">思考中...</div>`;
@@ -505,14 +493,13 @@
                 layer.innerHTML += `
                     <div class="player-seat ${seatClass} ${posClass}">
                         ${(p.winAmount > 0 && state.game.status === "SHOWDOWN") ? `<div class="win-fly-text">+$${p.winAmount}</div>` : ''}
-                        <div class="hole-cards">${p.folded || isOut ? '' : cardsHtml}</div>
                         
-                        <div class="player-card ${isActive && !p.folded && !isOut ? 'active' : ''} ${isOut ? 'out-state' : ''}" style="${(p.folded && !isOut) ? 'opacity: 0.6;' : ''}">
+                        <div class="hole-cards">${p.folded || isOut || isWaitingNextHand ? '' : cardsHtml}</div>
+                        
+                        <div class="player-card ${isActive && !p.folded && !isOut && !isWaitingNextHand ? 'active' : ''} ${isOut ? 'out-state' : ''}" style="${(p.folded && !isOut) || isWaitingNextHand ? 'opacity: 0.6;' : ''}">
                             ${kickHtml}
                             <div class="player-avatar"><span>${displayAvatar}</span></div>
-                            
                             <div style="min-height:22px;">${badgeHtml}</div>
-                            
                             <div class="player-name">${displayName}</div>
                             <div class="player-chips">$${p.chips}</div>
                         </div>
