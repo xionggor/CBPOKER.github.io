@@ -8,7 +8,6 @@
         :root { 
             --bg-dark: #242b35; --table-inner: #248ceb; --panel-bg: #11151a; 
             --gold: #ffd700; --active-green: #2ecc71; 
-            --btn-fold: #d95379; --btn-call: #1976d2; --btn-raise: #0d47a1;
         }
         body { margin: 0; padding: 0; background-color: var(--bg-dark); color: white; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center;}
         .view-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.3s; }
@@ -18,7 +17,6 @@
         .logo-title { color: var(--gold); font-size: 32px; font-weight: 900; letter-spacing: 2px; margin-bottom: 30px; margin-top: 0;}
         .btn-main { width: 100%; padding: 16px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 15px; transition: 0.2s; }
         .btn-gold { background: var(--gold); color: black; } .btn-gold:hover { transform: scale(1.03); background: #e6c200; }
-        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-dark { background: #2a3441; color: white; border: 1px solid #444; } .btn-dark:hover { background: #354252; }
         .input-group { display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #333; }
         .input-code { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; text-align: center; font-size: 16px; font-weight: bold; letter-spacing: 2px; outline: none; text-transform: uppercase;}
@@ -34,20 +32,34 @@
         #table-container { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
         .poker-table { width: 80vw; height: 50vh; max-width: 1000px; max-height: 550px; background: radial-gradient(circle, #349feb 0%, var(--table-inner) 100%); border: 20px solid #1c232c; border-radius: 250px; box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3); position: relative; }
         
-        .pot-display-container { position: absolute; top: 25%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 215, 0, 0.3); padding: 8px 25px; border-radius: 30px; text-align: center; z-index: 5;}
+        .pot-display-container { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 215, 0, 0.3); padding: 6px 20px; border-radius: 30px; text-align: center; z-index: 5;}
         .pot-label { font-size: 11px; color: #aaa; display: block; }
         .pot-value { font-size: 22px; font-weight: 900; color: var(--gold); }
         .top-left-logo { position: absolute; top: 20px; left: 20px; font-size: 24px; font-weight: 900; letter-spacing: 2px; }
-        .community-cards-area { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; z-index: 5; gap: 8px;}
+        .community-cards-area { position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; z-index: 5; gap: 8px;}
 
-        .burn-area { display: flex; position: relative; margin-right: 25px; border-right: 2px dashed rgba(255,255,255,0.3); padding-right: 15px; align-items: center; height: 60px; width: 50px;}
+        .burn-area { display: flex; position: relative; margin-right: 20px; border-right: 2px dashed rgba(255,255,255,0.3); padding-right: 15px; align-items: center; height: 60px; width: 50px;}
         .burn-area .playing-card { position: absolute; left: 0; box-shadow: -2px 2px 5px rgba(0,0,0,0.8); }
 
         .invite-pill { background: rgba(17, 21, 26, 0.95); padding: 20px 40px; border-radius: 50px; text-align: center; border: 1px solid #333; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s; }
         .invite-pill:hover { background: #1a2028; transform: scale(1.02); }
 
-        .winner-banner { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.9); border: 2px solid var(--gold); color: white; padding: 25px 40px; border-radius: 15px; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.9); z-index: 200; white-space: nowrap; animation: popIn 0.5s ease;}
-        @keyframes popIn { 0% { transform: translate(-50%, -40%) scale(0.8); opacity: 0;} 100% { transform: translate(-50%, -50%) scale(1); opacity: 1;} }
+        /* 【新增：战绩表按钮与浮窗】 */
+        .btn-ledger { position: absolute; top: 20px; right: 20px; background: rgba(17, 21, 26, 0.8); border: 1px solid var(--gold); color: var(--gold); padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; z-index: 90; transition: 0.2s; }
+        .btn-ledger:hover { background: rgba(255, 215, 0, 0.2); }
+        .ledger-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 300; }
+        .ledger-box { background: #1a1e24; border: 2px solid var(--gold); border-radius: 15px; padding: 25px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); }
+        .ledger-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: white; }
+        .ledger-table th, .ledger-table td { padding: 12px; border-bottom: 1px solid #333; text-align: center; }
+        .ledger-table th { color: #8ca0b3; font-size: 13px; letter-spacing: 1px; }
+        .text-green { color: #2ecc71; font-weight: bold; }
+        .text-red { color: #e74c3c; font-weight: bold; }
+
+        .winner-banner { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); background: rgba(17, 21, 26, 0.95); border: 1px solid var(--gold); color: #eee; padding: 15px 25px; border-radius: 16px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 200; white-space: nowrap; animation: popDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popDown { 0% { top: 5%; opacity: 0; transform: translate(-50%, -20px) scale(0.9);} 100% { top: 15%; opacity: 1; transform: translate(-50%, 0) scale(1);} }
+        .msg-red-card { color: #e74c3c; font-weight: 900; font-family: monospace; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px; font-size: 18px;}
+        .msg-black-card { color: #fff; font-weight: 900; font-family: monospace; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px; font-size: 18px;}
+
         .win-fly-text { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); color: #2ecc71; font-size: 28px; font-weight: 900; text-shadow: 0 4px 10px rgba(0,0,0,1); animation: floatUp 4s ease-out forwards; z-index: 50; pointer-events: none; white-space: nowrap; }
         @keyframes floatUp { 0% { top: 20px; opacity: 0; transform: translateX(-50%) scale(0.5); } 10% { top: -20px; opacity: 1; transform: translateX(-50%) scale(1.3); } 20% { top: -30px; opacity: 1; transform: translateX(-50%) scale(1); } 80% { top: -60px; opacity: 1; transform: translateX(-50%) scale(1); } 100% { top: -80px; opacity: 0; transform: translateX(-50%) scale(1); } }
 
@@ -69,13 +81,19 @@
         .player-card.active .player-chips { background: var(--active-green); color: #000; }
         .player-card.empty-seat { background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.05); box-shadow: none; min-height: 85px; border-radius: 8px; }
         
+        .dealer-btn { position: absolute; width: 22px; height: 22px; background: white; color: black; border: 2px solid #555; border-radius: 50%; font-weight: 900; font-size: 12px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.6); z-index: 20; }
+        .pos-bottom .dealer-btn { top: -10px; right: -20px; }
+        .pos-top .dealer-btn { bottom: -10px; right: -20px; top: auto; }
+        .pos-left .dealer-btn { top: -10px; right: -25px; }
+        .pos-right .dealer-btn { top: -10px; left: -25px; }
+
         .player-avatar { padding-top: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2;}
         .player-avatar span { font-size: 26px; line-height: 1; }
         .player-name { font-size: 11px; color: #ddd; margin-top: auto; padding-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; z-index: 2;}
         .player-chips { background: #4b5d6d; text-align: center; font-size: 13px; font-weight: bold; padding: 5px 0; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; z-index: 2;}
         
         .status-badge-inner { font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin: 4px auto; width: fit-content; text-align: center; z-index: 2; letter-spacing: 1px; }
-        .bg-offline { background: #607d8b; color: white; } /* 断线和等待下局都用这个优雅的灰蓝色 */
+        .bg-offline { background: #607d8b; color: white; } 
         .bg-fold { background: rgba(217, 83, 121, 0.9); color: white; }
         .bg-think { background: rgba(46, 204, 113, 0.9); color: black; }
         .bg-allin { background: rgba(255, 215, 0, 0.9); color: black; }
@@ -174,6 +192,9 @@
 
     <div id="view-game" class="view-screen hidden">
         <div class="top-left-logo" style="color:var(--gold)">POKERCHILL</div>
+        
+        <button class="btn-ledger hidden" id="btn-ledger" onclick="openLedger()">📊 战绩计分板</button>
+
         <div id="table-container">
             <div class="poker-table">
                 <div class="pot-display-container"><span class="pot-label">TOTAL POT</span><span class="pot-value" id="ui-pot">$0</span></div>
@@ -228,6 +249,30 @@
         </div>
     </div>
 
+    <div id="ledger-modal" class="ledger-modal hidden">
+        <div class="ledger-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="color:var(--gold); margin:0;">账单统计 (Ledger)</h2>
+                <span style="font-size:24px; cursor:pointer; color:#8ca0b3;" onclick="closeLedger()">&times;</span>
+            </div>
+            <table class="ledger-table">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;">玩家</th>
+                        <th>总买入</th>
+                        <th>当前筹码</th>
+                        <th style="text-align:right;">净盈亏</th>
+                    </tr>
+                </thead>
+                <tbody id="ledger-tbody">
+                    </tbody>
+            </table>
+            <div style="text-align:center; margin-top:25px;">
+                <button class="btn-main btn-dark" style="margin:0; width:150px; padding:10px;" onclick="closeLedger()">关闭</button>
+            </div>
+        </div>
+    </div>
+
 <script>
     const BACKEND_URL = "https://poker-server.zxc717209554.workers.dev";
     const SEAT_ORDER = ['s-btm-c', 's-lft-b', 's-lft-t', 's-top-l', 's-top-c', 's-top-r', 's-rgt-t', 's-rgt-b', 's-btm-r', 's-btm-l'];
@@ -245,6 +290,10 @@
 
     let prevBoardLength = 0;
     let prevBurnLength = 0;
+
+    // 账单开闭逻辑
+    function openLedger() { document.getElementById('ledger-modal').classList.remove('hidden'); }
+    function closeLedger() { document.getElementById('ledger-modal').classList.add('hidden'); }
 
     const slider = document.getElementById('raise-slider');
     const displayAmount = document.getElementById('display-amount');
@@ -388,22 +437,57 @@
         prevBoardLength = state.game.board ? state.game.board.length : 0;
         prevBurnLength = state.game.burnCards ? state.game.burnCards.length : 0;
 
+        let playersArray = state.players || [];
+        
+        // 【核心修改：战绩计分板动态注入】
+        if (playersArray.length > 0) document.getElementById('btn-ledger').classList.remove('hidden');
+        let ledgerBody = "";
+        playersArray.forEach(p => {
+            const net = p.chips - (p.totalBuyIn || 0);
+            const netClass = net > 0 ? 'text-green' : (net < 0 ? 'text-red' : '');
+            const netStr = net > 0 ? `+$${net}` : (net < 0 ? `-$${Math.abs(net)}` : `$0`);
+            const pName = p.name.split('|')[1] || p.name;
+            ledgerBody += `<tr><td style="text-align:left;">${pName}</td><td>$${p.totalBuyIn || 0}</td><td>$${p.chips}</td><td class="${netClass}" style="text-align:right;">${netStr}</td></tr>`;
+        });
+        document.getElementById("ledger-tbody").innerHTML = ledgerBody;
+
+
+        // 【核心修改：破产阻断机制】
         const banner = document.getElementById("winner-banner");
         if (state.game.status === "SHOWDOWN") {
-            if (!countdownInterval) {
-                let timeLeft = 10;
-                countdownInterval = setInterval(() => {
-                    timeLeft--; const cdSpan = document.getElementById("auto-start-cd"); if (cdSpan) cdSpan.innerText = timeLeft;
-                    if (timeLeft <= 0) { clearInterval(countdownInterval); countdownInterval = null; send({type: 'NEXT_HAND'}); }
-                }, 1000);
+            const hasBankrupt = playersArray.some(p => p.chips === 0 || p.isOut);
+            
+            let richMsg = state.game.winMessage;
+            richMsg = richMsg.replace(/(10|[2-9JQKA])[♥♦]/g, '<span class="msg-red-card">$&</span>');
+            richMsg = richMsg.replace(/(10|[2-9JQKA])[♠♣]/g, '<span class="msg-black-card">$&</span>');
+
+            if (hasBankrupt) {
+                // 有人破产，强制暂停倒计时！
+                if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+                banner.innerHTML = `
+                    <div style="margin-bottom: 15px; font-size: 18px;">${richMsg}</div>
+                    <div style="font-size: 14px; color: #ff5b4c; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; border: 1px solid #ff5b4c;">
+                        ⚠️ 有玩家筹码耗尽，自动开局已暂停。<br>
+                        <span style="color:#aaa; font-size:12px;">请等待补充筹码，或由房主手动开局。</span>
+                    </div>
+                `;
+            } else {
+                // 全员健康，开启 10 秒倒计时
+                if (!countdownInterval) {
+                    let timeLeft = 10;
+                    countdownInterval = setInterval(() => {
+                        timeLeft--; const cdSpan = document.getElementById("auto-start-cd"); if (cdSpan) cdSpan.innerText = timeLeft;
+                        if (timeLeft <= 0) { clearInterval(countdownInterval); countdownInterval = null; send({type: 'NEXT_HAND'}); }
+                    }, 1000);
+                }
+                banner.innerHTML = `
+                    <div style="margin-bottom: 15px; font-size: 18px;">${richMsg}</div>
+                    <div style="font-size: 14px; color: #ccc; display: flex; align-items: center; justify-content: center; gap: 15px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px;">
+                        <span>下一局: <span id="auto-start-cd" style="color:var(--gold); font-size:20px; font-weight:900;">10</span>s</span>
+                        <button onclick="send({type:'NEXT_HAND'})" style="padding: 6px 15px; background: var(--active-green); color: black; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">立刻开始</button>
+                    </div>
+                `;
             }
-            banner.innerHTML = `
-                <div style="margin-bottom: 15px; font-size: 22px;">${state.game.winMessage}</div>
-                <div style="font-size: 15px; color: #ccc; display: flex; align-items: center; justify-content: center; gap: 15px; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 10px;">
-                    <span>下一局倒数: <span id="auto-start-cd" style="color:var(--gold); font-size:24px; font-weight:900;">10</span> 秒</span>
-                    <button onclick="send({type:'NEXT_HAND'})" style="padding: 8px 25px; background: var(--active-green); color: black; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">立刻开始</button>
-                </div>
-            `;
             banner.classList.remove("hidden");
         } else {
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
@@ -420,7 +504,6 @@
         const pill = document.getElementById("invite-pill-container");
         if(state.game.status !== "WAITING") pill.classList.add("hidden"); else pill.classList.remove("hidden");
 
-        let playersArray = state.players || [];
         const pureMyName = myName.split('|')[1] || myName;
         let amISeated = playersArray.some(p => p && (p.name.split('|')[1] || p.name) === pureMyName);
         
@@ -465,6 +548,7 @@
                 const isOut = p.isOut === true; 
                 const isOffline = p.isOnline === false; 
                 const isWaitingNextHand = p.isWaitingNextHand === true;
+                const isDealer = (p.realIndex === state.game.dealerIndex && state.game.status !== "WAITING");
 
                 let displayAvatar = '😎'; let displayName = p.name;
                 if (p.name.includes('|')) { const parts = p.name.split('|'); displayAvatar = parts[0]; displayName = parts[1]; }
@@ -479,7 +563,6 @@
                     }).join("");
                 }
 
-                // 【核心修改：精准控制标签状态】
                 let badgeHtml = "";
                 if (isOffline) badgeHtml = `<div class="status-badge-inner bg-offline">已离线</div>`;
                 else if (isWaitingNextHand) badgeHtml = `<div class="status-badge-inner bg-offline" style="background:#555;">等待下局</div>`;
@@ -495,7 +578,8 @@
                         ${(p.winAmount > 0 && state.game.status === "SHOWDOWN") ? `<div class="win-fly-text">+$${p.winAmount}</div>` : ''}
                         
                         <div class="hole-cards">${p.folded || isOut || isWaitingNextHand ? '' : cardsHtml}</div>
-                        
+                        ${isDealer ? `<div class="dealer-btn">D</div>` : ''}
+
                         <div class="player-card ${isActive && !p.folded && !isOut && !isWaitingNextHand ? 'active' : ''} ${isOut ? 'out-state' : ''}" style="${(p.folded && !isOut) || isWaitingNextHand ? 'opacity: 0.6;' : ''}">
                             ${kickHtml}
                             <div class="player-avatar"><span>${displayAvatar}</span></div>
@@ -505,7 +589,6 @@
                         </div>
                         
                         ${isOut ? `<div class="eliminated-x">❌</div>` : ''}
-                        
                         ${(p.betThisRound > 0 && state.game.status !== "WAITING") ? `<div class="bet-badge">⚪ $${p.betThisRound}</div>` : ''}
                     </div>
                 `;
