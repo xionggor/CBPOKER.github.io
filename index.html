@@ -151,6 +151,8 @@
         .btn-call { background: linear-gradient(145deg, #1976d2, #115293); }
         .btn-raise { background: linear-gradient(145deg, #ffd700, #d4b400); }
         .btn-raise .btn-title, .btn-raise .btn-sub { color: #11151a; }
+        
+        .waiting-tip { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 30px; color: #aaa; font-size: 14px; font-weight: bold; border: 1px solid #333; z-index: 20;}
     </style>
 </head>
 <body>
@@ -376,7 +378,14 @@
 
     function connectWebSocket() {
         const wsUrl = BACKEND_URL.replace("https://", "wss://") + `?roomId=${currentRoomId}`;
-        ws = new WebSocket(wsUrl); ws.onopen = () => ws.send(JSON.stringify({ type: "PING" }));
+        ws = new WebSocket(wsUrl); 
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ type: "PING" }));
+            // 【核心修复 1：只要网线一连通，立马向服务器大喊“我回来了！”】
+            if (myName !== "") {
+                ws.send(JSON.stringify({ type: "JOIN", name: myName }));
+            }
+        };
         ws.onmessage = (e) => { try { latestGameState = JSON.parse(e.data); renderEngine(latestGameState); } catch (err) {} };
     }
 
@@ -427,7 +436,7 @@
         if (playersArray.length > 0) document.getElementById('btn-ledger').classList.remove('hidden');
         let ledgerBody = "";
         playersArray.forEach(p => {
-            if(p.isKicked) return; // 剔除被踢的人
+            if(p.isKicked) return; 
             const net = p.chips - (p.totalBuyIn || 0);
             const netClass = net > 0 ? 'text-green' : (net < 0 ? 'text-red' : '');
             const netStr = net > 0 ? `+$${net}` : (net < 0 ? `-$${Math.abs(net)}` : `$0`);
@@ -488,7 +497,6 @@
 
         const pureMyName = myName.split('|')[1] || myName;
         
-        // 【核心修复：检查 isKicked 标志来进行强制遣返】
         const myDataRecord = playersArray.find(p => p && (p.name.split('|')[1] || p.name) === pureMyName);
         if (myDataRecord && myDataRecord.isKicked) {
             alert("您已被房主移出房间。");
@@ -508,7 +516,7 @@
         let displaySeats = new Array(MAX_SEATS).fill(null);
         
         playersArray.forEach((p, index) => {
-            if (!p || p.isKicked) return; // 绝不渲染被踢出的人，留出空位！
+            if (!p || p.isKicked) return; 
             let visualSeatIndex = visualMap[index % 10]; 
             while (displaySeats[visualSeatIndex] !== null) visualSeatIndex = (visualSeatIndex + 1) % 10;
             displaySeats[visualSeatIndex] = { ...p, realIndex: index };
@@ -554,8 +562,9 @@
                 else if (p.chips === 0 && !isOut && !p.folded && state.game.status !== "WAITING") badgeHtml = `<div class="status-badge-inner bg-allin">ALL-IN</div>`;
                 else if (isActive && !p.folded && !isOut) badgeHtml = `<div class="status-badge-inner bg-think">思考中...</div>`;
 
+                // 【核心修复 2：把 name: myName 令牌交给服务器，证明我是房主！】
                 let kickHtml = '';
-                if (isHost && p.name !== myName) { kickHtml = `<button class="kick-btn" onclick="send({type:'KICK', targetName:'${p.name}'})">踢出玩家</button>`; }
+                if (isHost && p.name !== myName) { kickHtml = `<button class="kick-btn" onclick="send({type:'KICK', name: myName, targetName:'${p.name}'})">踢出玩家</button>`; }
 
                 layer.innerHTML += `
                     <div class="player-seat ${seatClass} ${posClass}">
