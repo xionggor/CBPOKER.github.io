@@ -28,6 +28,7 @@
         .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; text-align: left;}
         .setting-label { font-size: 14px; color: #ccc; flex: 1; }
         .setting-input { width: 100px; padding: 8px 12px; border-radius: 6px; background: #1a2028; border: 1px solid #444; color: white; font-size: 14px; font-weight: bold; outline: none; text-align: right; transition: border-color 0.2s; }
+        .setting-input option { background-color: var(--panel-bg); color: white; }
 
         #table-container { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
         .poker-table { width: 80vw; height: 50vh; max-width: 1000px; max-height: 550px; background: radial-gradient(circle, #349feb 0%, var(--table-inner) 100%); border: 20px solid #1c232c; border-radius: 250px; box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3); position: relative; }
@@ -44,7 +45,6 @@
         .invite-pill { background: rgba(17, 21, 26, 0.95); padding: 20px 40px; border-radius: 50px; text-align: center; border: 1px solid #333; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s; }
         .invite-pill:hover { background: #1a2028; transform: scale(1.02); }
 
-        /* 右上角按钮组（只保留战绩表） */
         .top-right-btns { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 90; }
         .top-btn { background: rgba(17, 21, 26, 0.8); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-ledger { color: var(--gold); } .btn-ledger:hover { background: rgba(255, 215, 0, 0.2); }
@@ -84,8 +84,14 @@
         .player-card { width: 110px; min-height: 85px; background: #000; border-radius: 8px; overflow: visible; border: 2px solid transparent; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; position: relative; display: flex; flex-direction: column; justify-content: space-between;}
         .player-card.active { border-color: var(--active-green); box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);}
         .player-card.active .player-chips { background: var(--active-green); color: #000; }
-        .player-card.empty-seat { background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.05); box-shadow: none; min-height: 85px; border-radius: 8px; }
         
+        /* 空位的基础样式 */
+        .player-card.empty-seat { background: rgba(0, 0, 0, 0.4); border: 2px solid rgba(255, 255, 255, 0.05); box-shadow: none; min-height: 85px; border-radius: 8px; position: relative; }
+        
+        /* 【核心新增：极其高级隐蔽的 + 号加机器人按钮】 */
+        .add-bot-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 40px; color: rgba(255, 255, 255, 0.15); cursor: pointer; transition: 0.2s; font-weight: 100; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; border-radius: 8px; }
+        .add-bot-btn:hover { color: var(--gold); background: rgba(255, 215, 0, 0.1); }
+
         .dealer-btn { position: absolute; width: 22px; height: 22px; background: white; color: black; border: 2px solid #555; border-radius: 50%; font-weight: 900; font-size: 12px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.6); z-index: 20; }
         .pos-bottom .dealer-btn { top: -10px; right: -20px; }
         .pos-top .dealer-btn { bottom: -10px; right: -20px; top: auto; }
@@ -136,7 +142,6 @@
         #btn-take-seat { position:absolute; bottom:120px; left:50%; transform:translateX(-50%); padding: 15px 40px; border-radius: 50px; background:var(--gold); color:black; font-weight:bold; font-size:18px; border:none; cursor:pointer; z-index:30; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transition: 0.2s;}
         #btn-take-seat:hover { transform: translateX(-50%) scale(1.05); }
 
-        /* 游戏行动控制台 */
         .action-console { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(17, 21, 26, 0.95); border: 1px solid #333; border-radius: 16px; padding: 20px; width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 15px; z-index: 100; }
         .turn-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #2ecc71; color: black; font-weight: 900; font-size: 13px; padding: 4px 15px; border-radius: 20px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
         .raise-control-area { display: flex; flex-direction: column; gap: 12px; background: #1a2028; padding: 15px; border-radius: 12px; border: 1px solid #2a3441; }
@@ -178,10 +183,28 @@
 
     <div id="view-settings" class="view-screen hidden">
         <div class="menu-card" style="width: 380px;">
-            <div class="settings-header"><span onclick="navTo('view-home')">⟵ Back</span><span style="color:var(--gold);" onclick="createRoomFlow()">Continue ⟶</span></div>
-            <h2 style="margin-top:0; color:white; letter-spacing: 1px;">CASH GAME</h2>
-            <div class="setting-item"><span class="setting-label">标准买入额 (Buy-in)</span><input type="number" id="set-buyin" class="setting-input" value="10000"></div>
-            <div class="setting-item"><span class="setting-label">小盲注 (Small Blind)</span><input type="number" id="set-sb" class="setting-input" value="50" step="any"></div>
+            <div class="settings-header"><span onclick="navTo('view-home')">⟵ Back</span><span style="color:var(--gold);" onclick="createRoomFlow()">Create ⟶</span></div>
+            <h2 style="margin-top:0; color:white; letter-spacing: 1px;">ROOM SETUP</h2>
+            
+            <div class="setting-item">
+                <span class="setting-label">标准买入额 (Buy-in)</span>
+                <input type="number" id="set-buyin" class="setting-input" value="30">
+            </div>
+            <div class="setting-item">
+                <span class="setting-label">小盲注 (Small Blind)</span>
+                <input type="number" id="set-sb" class="setting-input" value="2.5" step="any">
+            </div>
+            <div class="setting-item">
+                <span class="setting-label">思考限时 (秒, 0为无限制)</span>
+                <input type="number" id="set-timer" class="setting-input" value="0">
+            </div>
+            <div class="setting-item">
+                <span class="setting-label">机器人难度</span>
+                <select id="set-bot-level" class="setting-input" style="width: 120px; cursor: pointer;">
+                    <option value="1">Lv.1 (气氛组)</option>
+                    <option value="2">Lv.2 (常客)</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -255,7 +278,7 @@
         <div id="buyin-console" class="action-console hidden" style="z-index: 105; bottom: 30px;">
             <div class="turn-badge" style="background: #e74c3c; color: white;">💳 筹码耗尽</div>
             <div style="text-align: center; color: white; margin: 15px 0 25px 0; font-size: 16px;">
-                您已进入观战状态。是否按当前标准底金进行补充？<br>
+                您已进入观战状态。是否按默认标准买入进行补充？<br>
                 <strong style="color: var(--active-green); font-size: 32px; line-height: 2;">+$<span id="ui-buyin-amount">10000</span></strong>
             </div>
             <div class="main-action-row" style="height: 55px;">
@@ -410,10 +433,20 @@
             window.history.pushState({}, "", `?room=${currentRoomId}`);
             document.getElementById('display-room-url').innerText = `ROOM CODE: ${currentRoomId}`;
             
-            const buyInVal = parseFloat(document.getElementById('set-buyin').value) || 10000;
-            const sb = parseFloat(document.getElementById('set-sb').value) || 50;
-            creatorSettings = { initialChips: buyInVal, smallBlind: sb, bigBlind: sb * 2 };
-            
+            // 【核心打包：极简配置 30 / 2.5 / 0】
+            const buyInVal = parseFloat(document.getElementById('set-buyin').value) || 30;
+            const sb = parseFloat(document.getElementById('set-sb').value) || 2.5;
+            const timer = parseInt(document.getElementById('set-timer').value) || 0;
+            const botLevel = parseInt(document.getElementById('set-bot-level').value) || 1;
+
+            creatorSettings = { 
+                initialChips: buyInVal, 
+                smallBlind: sb, 
+                bigBlind: sb * 2,
+                timer: timer,
+                botLevel: botLevel
+            };
+
             navTo('view-game'); document.getElementById('host-panel').classList.remove('hidden');
             openSitModal(); renderEngine({ status: "WAITING", game: { pot: 0, status: "WAITING", board: [] }, players: [] });
         } catch (e) { alert("无法连接 Cloudflare 服务器。"); }
@@ -467,8 +500,8 @@
 
         const elBuyin = document.getElementById('info-buyin');
         const elBlinds = document.getElementById('info-blinds');
-        if (elBuyin) elBuyin.innerText = state.game.buyIn || 10000;
-        if (elBlinds) elBlinds.innerText = `${state.game.smallBlind || 50}/${state.game.bigBlind || 100}`;
+        if (elBuyin) elBuyin.innerText = state.game.buyIn || 30;
+        if (elBlinds) elBlinds.innerText = `${state.game.smallBlind || 2.5}/${state.game.bigBlind || 5}`;
 
         document.getElementById("ui-pot").innerText = "$" + (state.game.pot || 0);
         
@@ -566,7 +599,13 @@
 
         const pureMyName = myName.split('|')[1] || myName;
         const myDataRecord = playersArray.find(p => p && (p.name.split('|')[1] || p.name) === pureMyName);
-        
+        if (myDataRecord && myDataRecord.isKicked) {
+            alert("您已被房主移出房间。");
+            myName = ""; localStorage.removeItem('poker_session_' + currentRoomId);
+            window.location.href = window.location.pathname; 
+            return;
+        }
+
         let amISeated = !!myDataRecord;
         if (isWaitingForServer && amISeated) { isWaitingForServer = false; document.getElementById('sit-modal').classList.add('hidden'); document.getElementById('btn-confirm-sit').innerText = "确定入座"; document.getElementById('btn-confirm-sit').disabled = false; }
         if (amISeated) document.getElementById('btn-take-seat').classList.add('hidden'); else if (myName === "" || !isWaitingForServer) document.getElementById('btn-take-seat').classList.remove('hidden'); 
@@ -589,7 +628,7 @@
             const seatClass = SEAT_ORDER[i];
             const p = displaySeats[i]; 
             
-            let posClass = ""; let betClass = "";
+            let posClass = ""; 
             if (seatClass.includes("btm")) posClass = "pos-bottom";
             if (seatClass.includes("top")) posClass = "pos-top";
             if (seatClass.includes("lft")) posClass = "pos-left";
@@ -617,7 +656,7 @@
                 }
 
                 let badgeHtml = "";
-                if (isOffline) badgeHtml = `<div class="status-badge-inner bg-offline">已离线</div>`;
+                if (isOffline && !p.isBot) badgeHtml = `<div class="status-badge-inner bg-offline">已离线</div>`;
                 else if (isSpectating) badgeHtml = `<div class="status-badge-inner bg-spec">👀 观战中</div>`;
                 else if (p.folded && !isOut) badgeHtml = `<div class="status-badge-inner bg-fold">已弃牌</div>`;
                 else if (p.chips === 0 && !isOut && !p.folded && state.game.status !== "WAITING") badgeHtml = `<div class="status-badge-inner bg-allin">ALL-IN</div>`;
@@ -644,7 +683,11 @@
                         ${(p.betThisRound > 0 && state.game.status !== "WAITING") ? `<div class="bet-badge">⚪ $${p.betThisRound}</div>` : ''}
                     </div>
                 `;
-            } else { layer.innerHTML += `<div class="player-seat ${seatClass} ${posClass}"><div class="player-card empty-seat"></div></div>`; }
+            } else { 
+                // 【核心：房主的空位上渲染巨大的 + 号召唤按钮】
+                let addBotHtml = isHost ? `<div class="add-bot-btn" onclick="send({type:'ADD_BOT', name: '${myName}'})">+</div>` : '';
+                layer.innerHTML += `<div class="player-seat ${seatClass} ${posClass}"><div class="player-card empty-seat">${addBotHtml}</div></div>`; 
+            }
         }
 
         const actionConsole = document.getElementById("action-console"); 
@@ -664,11 +707,10 @@
             const myData = playersArray.find(p => p && p.name === myName);
             if (!myData) return;
             
-            // 【核心修复：只有筹码为0，且不在All-in火拼中（也就是已经出局、观战、结算或等待）时，才显示强制买入面板】
             if (myData.chips === 0 && (state.game.status === "WAITING" || state.game.status === "SHOWDOWN" || myData.isOut || myData.isSpectating)) {
                 buyinConsole.classList.remove("hidden");
                 tableContainer.style.transform = "translateY(-60px) scale(0.95)";
-                document.getElementById('ui-buyin-amount').innerText = state.game.buyIn || 10000;
+                document.getElementById('ui-buyin-amount').innerText = state.game.buyIn || 30;
             } 
             else if (state.game.status !== "WAITING" && state.game.status !== "SHOWDOWN" && !myData.folded && !myData.isSpectating && myData.chips > 0) {
                 if (isMyTurn) {
