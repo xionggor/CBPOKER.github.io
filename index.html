@@ -45,14 +45,12 @@
         .invite-pill { background: rgba(17, 21, 26, 0.95); padding: 20px 40px; border-radius: 50px; text-align: center; border: 1px solid #333; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.5); transition: 0.2s; }
         .invite-pill:hover { background: #1a2028; transform: scale(1.02); }
 
-        /* 顶部两边按钮 */
         .top-left-btns { position: absolute; top: 20px; left: 20px; display: flex; gap: 15px; z-index: 90; }
         .top-right-btns { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 90; }
         .top-btn { background: rgba(17, 21, 26, 0.8); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-ledger { color: var(--gold); } .btn-ledger:hover { background: rgba(255, 215, 0, 0.2); }
         .btn-log { color: #349feb; border-color: #349feb; } .btn-log:hover { background: rgba(52, 159, 235, 0.2); }
 
-        /* 【核心新增：抽屉式牌局记录栏】 */
         #log-drawer { position: fixed; left: -350px; top: 0; width: 320px; height: 100%; background: rgba(17, 21, 26, 0.98); border-right: 1px solid #333; z-index: 400; transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.8); }
         #log-drawer.open { left: 0; }
         .log-header { padding: 20px; font-size: 18px; font-weight: 900; color: var(--gold); border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
@@ -330,8 +328,22 @@
 
 <script>
     const BACKEND_URL = "https://poker-server.zxc717209554.workers.dev";
-    // 固定的物理座位顺序映射 (0-9)
-    const SEAT_ORDER = ['s-btm-c', 's-lft-b', 's-lft-t', 's-top-l', 's-top-c', 's-top-r', 's-rgt-t', 's-rgt-b', 's-btm-r', 's-btm-l'];
+    
+    // 【核心修缮：完美的顺时针物理坐标数组】
+    // 从底边正中(0)开始，严格顺时针绕桌一圈
+    const SEAT_ORDER = [
+        's-btm-c', // 0: 底边中
+        's-btm-l', // 1: 底边左
+        's-lft-b', // 2: 左边下
+        's-lft-t', // 3: 左边上
+        's-top-l', // 4: 顶边左
+        's-top-c', // 5: 顶边中
+        's-top-r', // 6: 顶边右
+        's-rgt-t', // 7: 右边上
+        's-rgt-b', // 8: 右边下
+        's-btm-r'  // 9: 底边右
+    ];
+    
     const AVATAR_LIST = ['😎', '🤖', '🤡', '🤠', '👽', '👻', '🐼', '🧛', '🐻', '🦊', '🐯', '🐷'];
     const MAX_SEATS = 10;
 
@@ -346,7 +358,7 @@
 
     let prevBoardLength = 0;
     let prevBurnLength = 0;
-    let logCount = 0; // 用于判断日志是否更新
+    let logCount = 0;
 
     function openLedger() { document.getElementById('ledger-modal').classList.remove('hidden'); document.getElementById('settlement-area').style.display = 'none'; }
     function closeLedger() { document.getElementById('ledger-modal').classList.add('hidden'); }
@@ -507,7 +519,6 @@
     function renderEngine(state) {
         if (!state || !state.game) return;
 
-        // 渲染记录侧边栏
         if (state.game.logs && state.game.logs.length !== logCount) {
             const contentBox = document.getElementById('log-content');
             contentBox.innerHTML = state.game.logs.map(log => `<div class="log-item">${log}</div>`).join('');
@@ -631,10 +642,22 @@
 
         const layer = document.getElementById("players-layer"); layer.innerHTML = "";
         let isMyTurn = false;
+        
+        // 【核心修复：主角视角锚定】计算出你的座位号，让它始终对应视觉上的 0号 (底边中心)
+        let mySeatIdx = 0;
+        if (myDataRecord && !myDataRecord.isKicked) mySeatIdx = myDataRecord.seatIndex;
+
+        let displaySeats = new Array(MAX_SEATS).fill(null);
+        playersArray.forEach((p) => {
+            if (!p || p.isKicked) return; 
+            // 相对偏移算法：(实际座位 - 我的座位 + 10) % 10
+            let visualIndex = (p.seatIndex - mySeatIdx + 10) % 10; 
+            displaySeats[visualIndex] = p;
+        });
 
         const isInitialDeal = state.game.status === 'PRE-FLOP' && !playersArray.some(p => p.actedThisRound);
         
-        // 【核心渲染：计算发牌动画顺时针延迟数组】
+        // 生成顺时针发牌动画所需的序号数组
         let playingSeatsOrder = [];
         if (isInitialDeal) {
             for (let i = 0; i < 10; i++) {
@@ -644,10 +667,9 @@
             }
         }
 
-        // 【核心渲染：严格遍历 0-9 号物理座位渲染界面】
         for (let i = 0; i < MAX_SEATS; i++) {
             const seatClass = SEAT_ORDER[i];
-            const p = playersArray.find(x => x.seatIndex === i && !x.isKicked); 
+            const p = displaySeats[i]; 
             
             let posClass = ""; 
             if (seatClass.includes("btm")) posClass = "pos-bottom";
@@ -672,12 +694,12 @@
                         const isHidden = (p.name !== myName && state.game.status !== "SHOWDOWN") || c === "??";
                         const isRed = !isHidden && (c.includes('♥') || c.includes('♦'));
                         
-                        // 【核心动画：双轮顺时针荷官发牌】
                         let animDelay = "";
                         if (isInitialDeal) {
                             let dealIdx = playingSeatsOrder.indexOf(p.seatIndex);
                             if (dealIdx !== -1) {
                                 let totalPlayers = playingSeatsOrder.length;
+                                // 【动画引擎：第一张发完一圈，再发第二张】
                                 let delayTime = (idx === 0) ? (dealIdx * 0.15) : ((totalPlayers + dealIdx) * 0.15);
                                 animDelay = `animation: dealHoleCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards; animation-delay: ${delayTime}s;`;
                             }
@@ -716,8 +738,9 @@
                     </div>
                 `;
             } else { 
-                // 【完美保留：房主专属的物理座位空位 + 号】
-                let addBotHtml = isHost ? `<div class="add-bot-btn" onclick="send({type:'ADD_BOT', name: '${myName}', seatIndex: ${i}})">+</div>` : '';
+                // 【核心：反推实际物理座位，精确指引机器人坐下】
+                let realSeatIdx = (i + mySeatIdx) % 10;
+                let addBotHtml = isHost ? `<div class="add-bot-btn" onclick="send({type:'ADD_BOT', name: '${myName}', seatIndex: ${realSeatIdx}})">+</div>` : '';
                 layer.innerHTML += `<div class="player-seat ${seatClass} ${posClass}"><div class="player-card empty-seat">${addBotHtml}</div></div>`; 
             }
         }
